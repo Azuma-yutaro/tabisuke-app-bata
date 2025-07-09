@@ -302,13 +302,23 @@ fun ScheduleEditScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                var urlError by remember { mutableStateOf("") }
                 OutlinedTextField(
                     value = url,
-                    onValueChange = { viewModel.onUrlChange(it) },
+                    onValueChange = { viewModel.onUrlChange(it); urlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) { "正しいURLを入力してください" } else { "" } },
                     label = { Text("URL") },
                     placeholder = { Text("例: https://example.com") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = urlError.isNotEmpty()
                 )
+                if (urlError.isNotEmpty()) {
+                    Text(
+                        text = urlError,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                    )
+                }
 
                 // 画像アップロード
                 Card(
@@ -444,7 +454,7 @@ fun ScheduleEditScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = date.isNotEmpty() && time.isNotEmpty() && title.isNotEmpty()
+                enabled = date.isNotEmpty() && time.isNotEmpty() && title.isNotEmpty() && urlError.isEmpty()
             ) {
                 Text(
                     if (scheduleId != null) "行事を更新" else "行事を登録して続ける", 

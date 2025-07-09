@@ -261,13 +261,31 @@ fun ManagementScreen(
             }
 
             // Google Maps URL
+            var mapUrlError by remember { mutableStateOf("") }
+            val mapUrl = event?.mapUrl ?: ""
             OutlinedTextField(
-                value = event?.mapUrl ?: "",
-                onValueChange = { viewModel.updateEventMapUrl(it) },
+                value = mapUrl,
+                onValueChange = {
+                    viewModel.updateEventMapUrl(it)
+                    mapUrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                        "正しいURLを入力してください"
+                    } else {
+                        ""
+                    }
+                },
                 label = { Text("Google Maps URL") },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("https://maps.google.com/...") }
+                placeholder = { Text("https://maps.google.com/...") },
+                isError = mapUrlError.isNotEmpty()
             )
+            if (mapUrlError.isNotEmpty()) {
+                Text(
+                    text = mapUrlError,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                )
+            }
 
             // 権限設定
             Card(
@@ -402,12 +420,30 @@ fun ManagementScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    var button1UrlError by remember { mutableStateOf("") }
+                    val button1Url = event?.button1?.url ?: ""
                     OutlinedTextField(
-                        value = event?.button1?.url ?: "",
-                        onValueChange = { viewModel.updateButton1Url(it) },
+                        value = button1Url,
+                        onValueChange = {
+                            viewModel.updateButton1Url(it)
+                            button1UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                "正しいURLを入力してください"
+                            } else {
+                                ""
+                            }
+                        },
                         label = { Text("ボタン1 URL") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = button1UrlError.isNotEmpty()
                     )
+                    if (button1UrlError.isNotEmpty()) {
+                        Text(
+                            text = button1UrlError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = event?.button1?.icon ?: "",
@@ -427,12 +463,30 @@ fun ManagementScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    var button2UrlError by remember { mutableStateOf("") }
+                    val button2Url = event?.button2?.url ?: ""
                     OutlinedTextField(
-                        value = event?.button2?.url ?: "",
-                        onValueChange = { viewModel.updateButton2Url(it) },
+                        value = button2Url,
+                        onValueChange = {
+                            viewModel.updateButton2Url(it)
+                            button2UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                "正しいURLを入力してください"
+                            } else {
+                                ""
+                            }
+                        },
                         label = { Text("ボタン2 URL") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = button2UrlError.isNotEmpty()
                     )
+                    if (button2UrlError.isNotEmpty()) {
+                        Text(
+                            text = button2UrlError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = event?.button2?.icon ?: "",
@@ -452,12 +506,30 @@ fun ManagementScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    var button3UrlError by remember { mutableStateOf("") }
+                    val button3Url = event?.button3?.url ?: ""
                     OutlinedTextField(
-                        value = event?.button3?.url ?: "",
-                        onValueChange = { viewModel.updateButton3Url(it) },
+                        value = button3Url,
+                        onValueChange = {
+                            viewModel.updateButton3Url(it)
+                            button3UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                "正しいURLを入力してください"
+                            } else {
+                                ""
+                            }
+                        },
                         label = { Text("ボタン3 URL") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = button3UrlError.isNotEmpty()
                     )
+                    if (button3UrlError.isNotEmpty()) {
+                        Text(
+                            text = button3UrlError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = event?.button3?.icon ?: "",

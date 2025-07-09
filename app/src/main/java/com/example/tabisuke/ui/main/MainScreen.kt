@@ -334,27 +334,64 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                 }
             }
 
-            // Footer - イベント一覧ボタン
-            Card(
+            // Footer - イベント情報と一覧ボタン
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    .padding(16.dp)
             ) {
-                Button(
+                // イベント情報
+                event?.let { eventData ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // イベントタイトル
+                        Text(
+                            text = eventData.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        
+                        // 説明
+                        if (eventData.description.isNotEmpty()) {
+                            Text(
+                                text = eventData.description,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(bottom = 4.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                        
+                        // 期間
+                        if (eventData.startDate.isNotEmpty() && eventData.endDate.isNotEmpty()) {
+                            Text(
+                                text = "${eventData.startDate} 〜 ${eventData.endDate}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                
+                // イベント一覧に戻るボタン
+                TextButton(
                     onClick = { navController.navigate("event_list/${groupId}") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = androidx.compose.ui.graphics.Color(0xFFFF8C00) // オレンジ色
                     )
                 ) {
-                    Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("イベント一覧に戻る", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
                 }
             }
         }

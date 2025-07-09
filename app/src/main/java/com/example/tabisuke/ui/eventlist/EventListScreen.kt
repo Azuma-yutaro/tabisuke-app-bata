@@ -44,14 +44,14 @@ fun EventListScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                                navigationIcon = {
+                    IconButton(onClick = { navController.navigate("group_list") }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "戻る"
                         )
                     }
-        }
+                }
             )
         },
         floatingActionButton = {
