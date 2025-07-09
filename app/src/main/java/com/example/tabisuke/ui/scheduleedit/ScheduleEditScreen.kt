@@ -24,6 +24,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.example.tabisuke.ui.main.EventBottomNavBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,6 +93,14 @@ fun ScheduleEditScreen(
                         )
                     }
                 }
+            )
+        },
+        bottomBar = {
+            EventBottomNavBar(
+                navController = navController,
+                groupId = groupId,
+                eventId = eventId,
+                mapUrl = null
             )
         }
     ) { padding ->

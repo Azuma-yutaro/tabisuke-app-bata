@@ -22,6 +22,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import java.time.format.DateTimeFormatter
+import com.example.tabisuke.ui.main.EventBottomNavBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +86,14 @@ fun ManagementScreen(
                         }
                     }
                 }
+            )
+        },
+        bottomBar = {
+            EventBottomNavBar(
+                navController = navController,
+                groupId = groupId,
+                eventId = eventId,
+                mapUrl = null
             )
         }
     ) { padding ->

@@ -18,6 +18,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.graphics.Color
+import coil.compose.AsyncImage
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.ContentScale
+import kotlin.math.absoluteValue
+import androidx.compose.foundation.background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,57 +139,88 @@ fun GroupListScreen(navController: NavController, viewModel: GroupListViewModel 
                     .padding(padding)
             ) {
                 items(groups) { group ->
-                    Card(
+                    // パステルカラー配列
+                    val pastelColors = listOf(
+                        Color(0xFFFFF4E6), // オレンジ系
+                        Color(0xFFE6F7FF), // 水色系
+                        Color(0xFFE6FFF4), // 緑系
+                        Color(0xFFF4E6FF), // 紫系
+                        Color(0xFFFFE6F7), // ピンク系
+                        Color(0xFFFFFBE6)  // 黄色系
+                    )
+                    // グループごとに色を決定（IDのハッシュで）
+                    val bgColor = pastelColors[(group.id.hashCode().absoluteValue) % pastelColors.size]
+
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            .clickable { navController.navigate("event_list/${group.id}") }
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // グループ情報（クリックでイベント一覧に遷移）
-                            Column(
+                        // 画像 or パステル色＋頭文字
+                        if (group.imageUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = group.imageUrl,
+                                contentDescription = "グループ画像",
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clickable {
-                                        navController.navigate("event_list/${group.id}")
-                                    }
+                                    .size(48.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(bgColor),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = group.name,
-                                    fontSize = 18.sp,
+                                    text = group.name.firstOrNull()?.toString() ?: "?",
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "メンバー数: ${group.memberCount}人",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
-                            }
-                            
-                            // 設定ボタン
-                            IconButton(
-                                onClick = {
-                                    navController.navigate("group_settings/${group.id}")
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "グループ設定",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = group.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "メンバー数: ${group.memberCount}人",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "イベント数: ${group.eventCount}件",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { navController.navigate("group_settings/${group.id}") }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "グループ設定",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
+                    Divider(modifier = Modifier.padding(start = 80.dp))
                 }
             }
         }

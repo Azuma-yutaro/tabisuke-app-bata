@@ -13,8 +13,10 @@ data class Group(
     val id: String,
     val name: String,
     val memberCount: Int,
+    val eventCount: Int = 0,
     val createdBy: String,
-    val createdAt: com.google.firebase.Timestamp
+    val createdAt: com.google.firebase.Timestamp,
+    val imageUrl: String = ""
 )
 
 class GroupListViewModel : ViewModel() {
@@ -71,13 +73,22 @@ class GroupListViewModel : ViewModel() {
                                 .get()
                                 .await()
                             
+                            // イベント数を取得
+                            val eventsSnapshot = firestore.collection("groups")
+                                .document(groupId)
+                                .collection("events")
+                                .get()
+                                .await()
+                            
                             val group = Group(
                                 id = groupId,
                                 name = groupData["name"] as? String ?: "",
                                 memberCount = membersSnapshot.size(),
+                                eventCount = eventsSnapshot.size(),
                                 createdBy = groupData["created_by"] as? String ?: "",
                                 createdAt = groupData["created_at"] as? com.google.firebase.Timestamp 
-                                    ?: com.google.firebase.Timestamp.now()
+                                    ?: com.google.firebase.Timestamp.now(),
+                                imageUrl = groupData["imageUrl"] as? String ?: ""
                             )
                             
                             groupList.add(group)

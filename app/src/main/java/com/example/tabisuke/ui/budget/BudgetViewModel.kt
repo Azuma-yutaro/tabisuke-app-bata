@@ -11,7 +11,8 @@ import kotlinx.coroutines.tasks.await
 data class DailyBudget(
     val date: String,
     val budget: Long,
-    val scheduleCount: Int
+    val scheduleCount: Int,
+    val dayLabel: String
 )
 
 data class BudgetSummary(
@@ -57,15 +58,16 @@ class BudgetViewModel : ViewModel() {
                 }
                 
                 // 日付ごとにグループ化
-                val dailyBudgets = schedules.groupBy { it.date }
-                    .map { (date, scheduleList) ->
-                        DailyBudget(
-                            date = date,
-                            budget = scheduleList.sumOf { it.budget },
-                            scheduleCount = scheduleList.size
-                        )
-                    }
-                    .sortedBy { it.date }
+                val sortedDates = schedules.map { it.date }.distinct().sorted()
+                val dailyBudgets = sortedDates.mapIndexed { idx, date ->
+                    val scheduleList = schedules.filter { it.date == date }
+                    DailyBudget(
+                        date = date,
+                        budget = scheduleList.sumOf { it.budget },
+                        scheduleCount = scheduleList.size,
+                        dayLabel = "${idx + 1}日目"
+                    )
+                }
                 
                 val totalBudget = schedules.sumOf { it.budget }
                 

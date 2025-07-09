@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.tabisuke.ui.main.EventBottomNavBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +53,14 @@ fun BudgetScreen(
                         )
                     }
                 }
+            )
+        },
+        bottomBar = {
+            EventBottomNavBar(
+                navController = navController,
+                groupId = groupId,
+                eventId = eventId,
+                mapUrl = null
             )
         }
     ) { padding ->
@@ -119,7 +128,7 @@ fun BudgetScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "日付: ${dailyBudget.date}",
+                                    text = dailyBudget.dayLabel,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
