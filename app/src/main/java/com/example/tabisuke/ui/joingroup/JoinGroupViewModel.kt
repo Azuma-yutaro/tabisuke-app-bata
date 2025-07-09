@@ -33,25 +33,91 @@ class JoinGroupViewModel : ViewModel() {
         firestore.collection("groups").document(_groupId.value).get()
             .addOnSuccessListener { groupDoc ->
                 if (groupDoc.exists()) {
-                    // Add user to group members
-                    val membersMap = groupDoc.get("members") as? MutableMap<String, Map<String, String>> ?: mutableMapOf()
-                    membersMap[userId] = mapOf("name" to userName, "role" to "viewer") // Default role is viewer
-
-                    firestore.collection("groups").document(_groupId.value).update("members", membersMap)
-                        .addOnSuccessListener {
-                            // Find the first event in the group to navigate to
-                            firestore.collection("groups").document(_groupId.value).collection("events").limit(1).get()
-                                .addOnSuccessListener { eventQuery ->
-                                    if (!eventQuery.isEmpty) {
-                                        val eventId = eventQuery.documents[0].id
-                                        onSuccess(_groupId.value, eventId)
-                                    } else {
-                                        _joinError.value = "グループにイベントがありません。"
+                    // 既にメンバーかどうかチェック
+                    firestore.collection("groups")
+                        .document(_groupId.value)
+                        .collection("members")
+                        .document(userId)
+                        .get()
+                        .addOnSuccessListener { memberDoc ->
+                            if (memberDoc.exists()) {
+                                // 既にメンバーの場合、直接参加
+                                firestore.collection("groups").document(_groupId.value).collection("events").limit(1).get()
+                                    .addOnSuccessListener { eventQuery ->
+                                        if (!eventQuery.isEmpty) {
+                                            val eventId = eventQuery.documents[0].id
+                                            onSuccess(_groupId.value, eventId)
+                                        } else {
+                                            _joinError.value = "グループにイベントがありません。"
+                                        }
                                     }
-                                }
-                                .addOnFailureListener { e -> _joinError.value = "イベントの取得に失敗しました: ${e.message}" }
+                                    .addOnFailureListener { e -> _joinError.value = "イベントの取得に失敗しました: ${e.message}" }
+                            } else {
+                                // 既存のリクエストをチェック
+                                firestore.collection("groups")
+                                    .document(_groupId.value)
+                                    .collection("join_requests")
+                                    .document(userId)
+                                    .get()
+                                    .addOnSuccessListener { requestDoc ->
+                                        if (requestDoc.exists()) {
+                                            val status = requestDoc.getString("status")
+                                            when (status) {
+                                                "pending" -> _joinError.value = "既に参加リクエストを送信済みです。承認されるまでお待ちください。"
+                                                "approved" -> {
+                                                    // 承認済みの場合、メンバーとして追加してから参加
+                                                    firestore.collection("groups")
+                                                        .document(_groupId.value)
+                                                        .collection("members")
+                                                        .document(userId)
+                                                        .set(
+                                                            mapOf(
+                                                                "display_name" to userName,
+                                                                "role" to "member",
+                                                                "joined_at" to com.google.firebase.Timestamp.now()
+                                                            )
+                                                        )
+                                                        .addOnSuccessListener {
+                                                            // イベント一覧に遷移
+                                                            firestore.collection("groups").document(_groupId.value).collection("events").limit(1).get()
+                                                                .addOnSuccessListener { eventQuery ->
+                                                                    if (!eventQuery.isEmpty) {
+                                                                        val eventId = eventQuery.documents[0].id
+                                                                        onSuccess(_groupId.value, eventId)
+                                                                    } else {
+                                                                        _joinError.value = "グループにイベントがありません。"
+                                                                    }
+                                                                }
+                                                                .addOnFailureListener { e -> _joinError.value = "イベントの取得に失敗しました: ${e.message}" }
+                                                        }
+                                                        .addOnFailureListener { e -> _joinError.value = "メンバー追加に失敗しました: ${e.message}" }
+                                                }
+                                                "rejected" -> _joinError.value = "参加リクエストが拒否されました。"
+                                                else -> _joinError.value = "不明なリクエスト状態です。"
+                                            }
+                                        } else {
+                                            // 新しい参加リクエストを作成
+                                            firestore.collection("groups")
+                                                .document(_groupId.value)
+                                                .collection("join_requests")
+                                                .document(userId)
+                                                .set(
+                                                    mapOf(
+                                                        "display_name" to userName,
+                                                        "requested_at" to com.google.firebase.Timestamp.now(),
+                                                        "status" to "pending"
+                                                    )
+                                                )
+                                                .addOnSuccessListener {
+                                                    _joinError.value = "参加リクエストを送信しました。承認されるまでお待ちください。"
+                                                }
+                                                .addOnFailureListener { e -> _joinError.value = "参加リクエストの送信に失敗しました: ${e.message}" }
+                                        }
+                                    }
+                                    .addOnFailureListener { e -> _joinError.value = "リクエスト確認に失敗しました: ${e.message}" }
+                            }
                         }
-                        .addOnFailureListener { e -> _joinError.value = "グループへの参加に失敗しました: ${e.message}" }
+                        .addOnFailureListener { e -> _joinError.value = "メンバー確認に失敗しました: ${e.message}" }
                 } else {
                     _joinError.value = "指定されたグループIDは存在しません。"
                 }

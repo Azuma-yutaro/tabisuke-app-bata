@@ -25,11 +25,18 @@ class GroupListViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
     
+    private val _currentUser = MutableStateFlow<String>("")
+    val currentUser: StateFlow<String> = _currentUser
+    
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     
     fun loadGroups() {
         val userId = auth.currentUser?.uid ?: return
+        
+        // 現在のユーザー名を取得
+        val userName = auth.currentUser?.displayName ?: auth.currentUser?.email ?: "Unknown User"
+        _currentUser.value = userName
         
         _isLoading.value = true
         
@@ -84,6 +91,15 @@ class GroupListViewModel : ViewModel() {
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+    
+    fun logout(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        try {
+            auth.signOut()
+            onSuccess()
+        } catch (e: Exception) {
+            onFailure(e)
         }
     }
 } 

@@ -32,6 +32,7 @@ import com.example.tabisuke.ui.creategroup.CreateGroupScreen
 import com.example.tabisuke.ui.createevent.CreateEventScreen
 import com.example.tabisuke.ui.joingroup.JoinGroupScreen
 import com.example.tabisuke.ui.budget.BudgetScreen
+import com.example.tabisuke.ui.groupsettings.GroupSettingsScreen
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -111,6 +112,10 @@ fun AppNavigator() {
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             GuestAccessScreen(navController = navController, groupId = groupId, eventId = eventId)
+        }
+        composable("group_settings/{groupId}") { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
+            GroupSettingsScreen(navController = navController, groupId = groupId)
         }
     }
 }

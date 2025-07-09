@@ -75,9 +75,9 @@ class ManagementViewModel : ViewModel() {
                         id = eventId,
                         title = data["title"] as? String ?: "",
                         description = data["description"] as? String ?: "",
-                        startDate = data["startDate"] as? String ?: "",
-                        endDate = data["endDate"] as? String ?: "",
-                        mapUrl = data["mapUrl"] as? String ?: "",
+                        startDate = data["startDate"] as? String ?: data["start_date"] as? String ?: "",
+                        endDate = data["endDate"] as? String ?: data["end_date"] as? String ?: "",
+                        mapUrl = data["mapUrl"] as? String ?: data["map_url"] as? String ?: "",
                         button1 = ButtonConfig(
                             text = data["button1Text"] as? String ?: "",
                             icon = data["button1Icon"] as? String ?: "",

@@ -46,8 +46,8 @@ class CreateEventViewModel : ViewModel() {
 
         val eventData = hashMapOf(
             "title" to _eventTitle.value,
-            "start_date" to _startDate.value,
-            "end_date" to _endDate.value,
+            "startDate" to _startDate.value,
+            "endDate" to _endDate.value,
             "created_by" to userId,
             "serial_enabled" to false,
             "serial_code" to "",
@@ -55,7 +55,7 @@ class CreateEventViewModel : ViewModel() {
             "button1" to mapOf("text" to "", "url" to "", "icon" to ""),
             "button2" to mapOf("text" to "", "url" to "", "icon" to ""),
             "button3" to mapOf("text" to "", "url" to "", "icon" to ""),
-            "map_url" to "",
+            "mapUrl" to "",
             "created_at" to com.google.firebase.Timestamp.now()
         )
 
