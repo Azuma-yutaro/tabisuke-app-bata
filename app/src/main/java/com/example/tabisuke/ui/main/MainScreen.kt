@@ -48,6 +48,7 @@ import com.example.tabisuke.ui.scheduledetail.Schedule
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import com.example.tabisuke.R
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,10 +146,11 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // メインコンテンツ
+                // 行事予定一覧（画面高さ60%、スクロール可能）
                 LazyColumn(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
+                        .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     // 行事リスト（日数ごとにグループ化）
@@ -214,7 +216,15 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             )
                         }
                     }
+                }
 
+                // ボタン類とフッター（別のスクロールエリア）
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
                     // オリジナルボタン（最大3つ）
                     item {
                         val originalButtonColors = listOf(
@@ -265,7 +275,8 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             }
                         }
                     }
-                    // デフォルトボタン
+                    
+                    // デフォルトボタン（最大3つ）
                     item {
                         Row(
                             modifier = Modifier
@@ -335,66 +346,68 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             }
                         }
                     }
-                }
 
-                // Footer - イベント情報と一覧ボタン
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    // イベント情報
-                    event?.let { eventData ->
+                    // Footer - イベント情報と一覧ボタン
+                    item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(16.dp)
                         ) {
-                            // イベントタイトル
-                            Text(
-                                text = eventData.title,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(bottom = 4.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                            
-                            // 説明
-                            if (eventData.description.isNotEmpty()) {
-                                Text(
-                                    text = eventData.description,
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.padding(bottom = 4.dp),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                            // イベント情報
+                            event?.let { eventData ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    // イベントタイトル
+                                    Text(
+                                        text = eventData.title,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(bottom = 4.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    
+                                    // 説明
+                                    if (eventData.description.isNotEmpty()) {
+                                        Text(
+                                            text = eventData.description,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                            modifier = Modifier.padding(bottom = 4.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
+                                    
+                                    // 期間
+                                    if (eventData.startDate.isNotEmpty() && eventData.endDate.isNotEmpty()) {
+                                        Text(
+                                            text = "${eventData.startDate} 〜 ${eventData.endDate}",
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
+                                }
                             }
                             
-                            // 期間
-                            if (eventData.startDate.isNotEmpty() && eventData.endDate.isNotEmpty()) {
-                                Text(
-                                    text = "${eventData.startDate} 〜 ${eventData.endDate}",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            // イベント一覧に戻るボタン
+                            TextButton(
+                                onClick = { navController.navigate("event_list/${groupId}") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = androidx.compose.ui.graphics.Color(0xFFFF8C00) // オレンジ色
                                 )
+                            ) {
+                                Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
                             }
                         }
-                    }
-                    
-                    // イベント一覧に戻るボタン
-                    TextButton(
-                        onClick = { navController.navigate("event_list/${groupId}") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = androidx.compose.ui.graphics.Color(0xFFFF8C00) // オレンジ色
-                        )
-                    ) {
-                        Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
                     }
                 }
             }
