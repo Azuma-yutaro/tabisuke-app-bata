@@ -32,8 +32,11 @@ fun ManagementScreen(
     viewModel: ManagementViewModel = viewModel()
 ) {
     val event by viewModel.event.collectAsState()
+    val showDeleteConfirm by viewModel.showDeleteConfirm.collectAsState()
+    val showFinalDeleteConfirm by viewModel.showFinalDeleteConfirm.collectAsState()
     val context = LocalContext.current
     val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+    val isEventCreator by viewModel.isEventCreator.collectAsState()
 
     // 日付選択状態
     val startDatePickerState = rememberDatePickerState()
@@ -42,6 +45,8 @@ fun ManagementScreen(
     LaunchedEffect(Unit) {
         viewModel.loadEvent(groupId, eventId)
     }
+    
+
 
     Scaffold(
         topBar = {
@@ -66,21 +71,10 @@ fun ManagementScreen(
                     }
                 },
                 actions = {
-                    // オーナー権限の場合のみ削除ボタンを表示
-                    if (viewModel.isOwner(currentUser?.uid ?: "")) {
+                    if (isEventCreator) {
                         IconButton(
                             onClick = {
-                                viewModel.deleteEvent(
-                                    groupId = groupId,
-                                    eventId = eventId,
-                                    onSuccess = {
-                                        Toast.makeText(context, "イベントを削除しました", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack()
-                                    },
-                                    onFailure = { e ->
-                                        Toast.makeText(context, "削除に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
-                                    }
-                                )
+                                viewModel.showDeleteConfirm()
                             }
                         ) {
                             Icon(
@@ -102,6 +96,94 @@ fun ManagementScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            
+            // 削除確認ダイアログ（1回目）
+            if (showDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.hideDeleteConfirm() },
+                    title = {
+                        Text(
+                            text = "イベント削除の確認",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "このイベントを削除しますか？\n\n削除すると、このイベントに関連するすべてのスケジュールも削除されます。",
+                            fontSize = 14.sp
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = { viewModel.showFinalDeleteConfirm() }
+                        ) {
+                            Text(
+                                text = "削除する",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { viewModel.hideDeleteConfirm() }
+                        ) {
+                            Text("キャンセル")
+                        }
+                    }
+                )
+            }
+            
+            // 最終削除確認ダイアログ（2回目）
+            if (showFinalDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.hideFinalDeleteConfirm() },
+                    title = {
+                        Text(
+                            text = "最終確認",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "この操作は取り消せません。\n\n本当に削除しますか？",
+                            fontSize = 14.sp
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.executeDeleteEvent(
+                                    groupId = groupId,
+                                    eventId = eventId,
+                                    onSuccess = {
+                                        Toast.makeText(context, "イベントを削除しました", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    },
+                                    onFailure = { e ->
+                                        Toast.makeText(context, "削除に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            }
+                        ) {
+                            Text(
+                                text = "削除する",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { viewModel.hideFinalDeleteConfirm() }
+                        ) {
+                            Text("キャンセル")
+                        }
+                    }
+                )
+            }
             // 行事タイトル
             OutlinedTextField(
                 value = event?.title ?: "",
@@ -236,7 +318,17 @@ fun ManagementScreen(
                             MemberPermissionItem(
                                 member = member,
                                 onRoleChange = { newRole ->
-                                    viewModel.updateMemberRole(groupId, member.personalId, newRole)
+                                    viewModel.updateMemberRole(
+                                        groupId = groupId,
+                                        personalId = member.personalId,
+                                        newRole = newRole,
+                                        onSuccess = {
+                                            Toast.makeText(context, "${member.name}の権限を${newRole}に変更しました", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onFailure = { e ->
+                                            Toast.makeText(context, "権限変更に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+                                        }
+                                    )
                                 }
                             )
                         }
@@ -472,6 +564,16 @@ fun MemberPermissionItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val roles = listOf("owner", "editor", "viewer")
+    
+    // 権限の日本語表示
+    fun getRoleDisplayName(role: String): String {
+        return when (role) {
+            "owner" -> "オーナー"
+            "editor" -> "編集者"
+            "viewer" -> "閲覧者"
+            else -> role
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -510,7 +612,7 @@ fun MemberPermissionItem(
                 onExpandedChange = { expanded = !expanded }
             ) {
                 OutlinedTextField(
-                    value = member.role,
+                    value = getRoleDisplayName(member.role),
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -525,7 +627,7 @@ fun MemberPermissionItem(
                 ) {
                     roles.forEach { role ->
                         DropdownMenuItem(
-                            text = { Text(role) },
+                            text = { Text(getRoleDisplayName(role)) },
                             onClick = {
                                 onRoleChange(role)
                                 expanded = false

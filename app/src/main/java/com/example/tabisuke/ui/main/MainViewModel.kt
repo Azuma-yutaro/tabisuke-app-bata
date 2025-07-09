@@ -103,6 +103,7 @@ class MainViewModel : ViewModel() {
                     val data = doc.data
                     if (data != null) {
                         Schedule(
+                            id = doc.id,
                             dayNumber = (data["dayNumber"] as? Long)?.toInt() ?: 1,
                             time = data["time"] as? String ?: "",
                             title = data["title"] as? String ?: "",

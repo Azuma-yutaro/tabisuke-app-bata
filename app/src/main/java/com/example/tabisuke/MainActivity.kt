@@ -98,6 +98,12 @@ fun AppNavigator() {
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             ScheduleEditScreen(navController = navController, groupId = groupId, eventId = eventId)
         }
+        composable("schedule_edit/{groupId}/{eventId}/{scheduleId}") { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val scheduleId = backStackEntry.arguments?.getString("scheduleId") ?: ""
+            ScheduleEditScreen(navController = navController, groupId = groupId, eventId = eventId, scheduleId = scheduleId)
+        }
         composable("management/{groupId}/{eventId}") { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""

@@ -8,26 +8,26 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class GuestAccessViewModel : ViewModel() {
-    
+
     private val _serialCode = MutableStateFlow("")
     val serialCode: StateFlow<String> = _serialCode
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
-    
+
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
-    
+
     private val _isAccessGranted = MutableStateFlow(false)
     val isAccessGranted: StateFlow<Boolean> = _isAccessGranted
     
     private val permissionManager = PermissionManager()
-    
+
     fun onSerialCodeChange(code: String) {
         _serialCode.value = code
         _errorMessage.value = ""
     }
-    
+
     fun verifySerialCode(groupId: String, eventId: String) {
         if (_serialCode.value.isBlank()) {
             _errorMessage.value = "シリアルコードを入力してください"

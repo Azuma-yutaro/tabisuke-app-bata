@@ -120,11 +120,11 @@ fun GuestAccessScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp)
-                ) {
-                    OutlinedTextField(
-                        value = serialCode,
-                        onValueChange = { viewModel.onSerialCodeChange(it) },
-                        label = { Text("シリアルコード") },
+        ) {
+            OutlinedTextField(
+                value = serialCode,
+                onValueChange = { viewModel.onSerialCodeChange(it) },
+                label = { Text("シリアルコード") },
                         placeholder = { Text("例: 1234") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -157,10 +157,10 @@ fun GuestAccessScreen(
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Button(
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
                         onClick = { viewModel.verifySerialCode(groupId, eventId) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading && serialCode.isNotEmpty(),

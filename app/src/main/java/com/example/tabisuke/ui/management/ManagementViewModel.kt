@@ -40,15 +40,26 @@ data class GuestAccess(
 )
 
 class ManagementViewModel : ViewModel() {
-    
+
     private val _event = MutableStateFlow<Event?>(null)
     val event: StateFlow<Event?> = _event
-    
+
     private val _members = MutableStateFlow<List<Member>>(emptyList())
     val members: StateFlow<List<Member>> = _members
-    
+
     private val _guestAccess = MutableStateFlow(GuestAccess(false, ""))
     val guestAccess: StateFlow<GuestAccess> = _guestAccess
+    
+    private val _isEventCreator = MutableStateFlow(false)
+    val isEventCreator: StateFlow<Boolean> = _isEventCreator
+
+    
+    // 削除確認関連
+    private val _showDeleteConfirm = MutableStateFlow(false)
+    val showDeleteConfirm: StateFlow<Boolean> = _showDeleteConfirm
+    
+    private val _showFinalDeleteConfirm = MutableStateFlow(false)
+    val showFinalDeleteConfirm: StateFlow<Boolean> = _showFinalDeleteConfirm
     
     // 日付選択関連
     private val _showStartDatePicker = MutableStateFlow(false)
@@ -57,9 +68,11 @@ class ManagementViewModel : ViewModel() {
     private val _showEndDatePicker = MutableStateFlow(false)
     val showEndDatePicker: StateFlow<Boolean> = _showEndDatePicker
     
+    private var _groupId = ""
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-    
+
     fun loadEvent(groupId: String, eventId: String) {
+        _groupId = groupId
         viewModelScope.launch {
             try {
                 val eventDoc = firestore.collection("groups")
@@ -94,6 +107,10 @@ class ManagementViewModel : ViewModel() {
                             url = data["button3Url"] as? String ?: ""
                         )
                     )
+                    // イベント作成者かどうかを判定
+                    val createdBy = data["created_by"] as? String ?: ""
+                    val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                    _isEventCreator.value = (userId == createdBy)
                 }
                 
                 // メンバー情報を読み込み
@@ -110,23 +127,27 @@ class ManagementViewModel : ViewModel() {
     fun loadMembers(groupId: String) {
         viewModelScope.launch {
             try {
-                val groupDoc = firestore.collection("groups")
+                // membersコレクションからメンバー情報を取得
+                val membersSnapshot = firestore.collection("groups")
                     .document(groupId)
+                    .collection("members")
                     .get()
                     .await()
 
-                if (groupDoc.exists()) {
-                    val data = groupDoc.data!!
-                    val membersMap = data["members"] as? Map<String, Map<String, String>>
-                    val memberList = membersMap?.map { (personalId, memberData) ->
-                        Member(
-                            personalId = personalId,
-                            name = memberData["name"] ?: "",
-                            role = memberData["role"] ?: "viewer"
+                val memberList = mutableListOf<Member>()
+                for (memberDoc in membersSnapshot.documents) {
+                    val memberData = memberDoc.data
+                    if (memberData != null) {
+                        memberList.add(
+                            Member(
+                                personalId = memberDoc.id,
+                                name = memberData["display_name"] as? String ?: memberData["name"] as? String ?: "不明",
+                                role = memberData["role"] as? String ?: "member"
+                            )
                         )
-                    } ?: emptyList()
-                    _members.value = memberList
+                    }
                 }
+                _members.value = memberList
             } catch (e: Exception) {
                 // エラーハンドリング
             }
@@ -156,15 +177,31 @@ class ManagementViewModel : ViewModel() {
         }
     }
 
-    // オーナー権限チェック
-    fun isOwner(userId: String): Boolean {
-        return _members.value.any { member ->
-            member.personalId == userId && member.role == "owner"
-        }
-    }
 
-    // イベント削除
-    fun deleteEvent(groupId: String, eventId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+
+    // 削除確認ダイアログを表示
+    fun showDeleteConfirm() {
+        _showDeleteConfirm.value = true
+    }
+    
+    // 削除確認ダイアログを非表示
+    fun hideDeleteConfirm() {
+        _showDeleteConfirm.value = false
+    }
+    
+    // 最終削除確認ダイアログを表示
+    fun showFinalDeleteConfirm() {
+        _showDeleteConfirm.value = false
+        _showFinalDeleteConfirm.value = true
+    }
+    
+    // 最終削除確認ダイアログを非表示
+    fun hideFinalDeleteConfirm() {
+        _showFinalDeleteConfirm.value = false
+    }
+    
+    // イベント削除実行
+    fun executeDeleteEvent(groupId: String, eventId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         viewModelScope.launch {
             try {
                 // イベントを削除
@@ -175,6 +212,7 @@ class ManagementViewModel : ViewModel() {
                     .delete()
                     .await()
                 
+                _showFinalDeleteConfirm.value = false
                 onSuccess()
             } catch (e: Exception) {
                 onFailure(e)
@@ -273,12 +311,15 @@ class ManagementViewModel : ViewModel() {
         )
     }
 
-    fun updateMemberRole(groupId: String, personalId: String, newRole: String) {
+    fun updateMemberRole(groupId: String, personalId: String, newRole: String, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
         viewModelScope.launch {
             try {
+                // membersコレクションのドキュメントを更新
                 firestore.collection("groups")
                     .document(groupId)
-                    .update("members.$personalId.role", newRole)
+                    .collection("members")
+                    .document(personalId)
+                    .update("role", newRole)
                     .await()
                 
                 // ローカル状態も更新
@@ -289,8 +330,15 @@ class ManagementViewModel : ViewModel() {
                         member
                     }
                 }
+                
+                // 権限チェックを再実行（自分の権限が変更された場合のため）
+                // checkUserRole() ← これを削除
+                
+                onSuccess()
             } catch (e: Exception) {
                 // エラーハンドリング
+                println("DEBUG: Error updating member role: ${e.message}")
+                onFailure(e)
             }
         }
     }

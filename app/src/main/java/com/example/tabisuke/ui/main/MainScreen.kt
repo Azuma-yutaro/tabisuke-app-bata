@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -80,39 +82,69 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        text = event?.title ?: "イベント",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "tabisuke",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = androidx.compose.ui.graphics.Color(0xFF833AB4)
+                            )
+                            Text(
+                                text = "|",
+                                fontSize = 14.sp,
+                                color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+                            )
+                            Text(
+                                text = event?.title ?: "イベント",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp,
+                                color = androidx.compose.ui.graphics.Color(0xFF333333)
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = androidx.compose.ui.graphics.Color.White,
+                    titleContentColor = androidx.compose.ui.graphics.Color.White
                 ),
                 actions = {
                     IconButton(onClick = { requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) }) {
-                        Icon(Icons.Filled.Share, contentDescription = "PDFをダウンロード")
+                        Icon(Icons.Filled.Share, contentDescription = "PDFをダウンロード", tint = androidx.compose.ui.graphics.Color(0xFF666666))
                     }
                     IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "管理画面")
+                        Icon(Icons.Filled.Settings, contentDescription = "管理画面", tint = androidx.compose.ui.graphics.Color(0xFF666666))
                     }
                 }
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                modifier = Modifier
+                    .padding(vertical = 0.dp)
+                    .height(56.dp)
+                    .background(androidx.compose.ui.graphics.Color.White)
+                    .border(
+                        width = 0.5.dp,
+                        color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                    ),
+                containerColor = androidx.compose.ui.graphics.Color.White
+            ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
                 listOf(
-                    Triple("行事登録", "schedule_edit", Icons.Filled.Add),
-                    Triple("メイン", "main_home", Icons.Filled.Home),
-                    Triple("マップ", "map_list", Icons.Filled.LocationOn)
-                ).forEach { (name, route, icon) ->
+                    Pair("schedule_edit", Icons.Filled.Add),
+                    Pair("main_home", Icons.Filled.Home),
+                    Pair("map_list", Icons.Filled.LocationOn)
+                ).forEach { (route, icon) ->
                     NavigationBarItem(
                         icon = { Icon(icon, contentDescription = null) },
-                        label = { Text(name) },
+                        label = { },
                         selected = currentDestination?.route == route,
                         onClick = {
                             when (route) {
@@ -152,14 +184,20 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = androidx.compose.ui.graphics.Color.White
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -168,16 +206,16 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                                 ) {
                                     Text(
                                         text = "${dayNumber}日目",
-                                        fontSize = 16.sp,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = androidx.compose.ui.graphics.Color(0xFF333333)
                                     )
                                     // 実際の日付を表示
                                     dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
                                         Text(
                                             text = actualDate,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            fontSize = 14.sp,
+                                            color = androidx.compose.ui.graphics.Color(0xFF666666)
                                         )
                                     }
                                 }
@@ -188,7 +226,16 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
                         ScheduleItem(
                             schedule = scheduleWithDate.schedule,
-                            onClick = { showScheduleDetail = scheduleWithDate.schedule }
+                            onClick = { showScheduleDetail = scheduleWithDate.schedule },
+                            backgroundColor = when (dayNumber) {
+                                1 -> androidx.compose.ui.graphics.Color(0xFFFFF3E0) // オレンジ系
+                                2 -> androidx.compose.ui.graphics.Color(0xFFE8F5E8) // グリーン系
+                                3 -> androidx.compose.ui.graphics.Color(0xFFE3F2FD) // ブルー系
+                                4 -> androidx.compose.ui.graphics.Color(0xFFFCE4EC) // ピンク系
+                                5 -> androidx.compose.ui.graphics.Color(0xFFF3E5F5) // パープル系
+                                6 -> androidx.compose.ui.graphics.Color(0xFFE0F2F1) // ティール系
+                                else -> androidx.compose.ui.graphics.Color(0xFFFAFAFA)
+                            }
                         )
                     }
                 }
@@ -318,7 +365,12 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         ScheduleDetailModal(
             schedule = schedule,
             onDismiss = { showScheduleDetail = null },
-            onUrlClick = { url -> uriHandler.openUri(url) }
+            onUrlClick = { url -> uriHandler.openUri(url) },
+            onEdit = { scheduleToEdit ->
+                // 編集画面に遷移
+                navController.navigate("schedule_edit/${groupId}/${eventId}/${scheduleToEdit.id}")
+                showScheduleDetail = null
+            }
         )
     }
 }
@@ -326,22 +378,29 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
 @Composable
 fun ScheduleItem(
     schedule: Schedule,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    backgroundColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surface
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 0.dp)
+            .border(
+                width = 1.dp,
+                color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+                shape = RoundedCornerShape(12.dp)
+            ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = backgroundColor
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
         onClick = onClick
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -359,13 +418,17 @@ fun ScheduleItem(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = "${schedule.budget}円",
-                modifier = Modifier.weight(1f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
+            if (schedule.budget > 0) {
+                Text(
+                    text = "${schedule.budget}円",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }

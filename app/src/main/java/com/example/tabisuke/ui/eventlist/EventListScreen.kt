@@ -51,7 +51,7 @@ fun EventListScreen(
                             contentDescription = "戻る"
                         )
                     }
-                }
+        }
             )
         },
         floatingActionButton = {
@@ -94,7 +94,7 @@ fun EventListScreen(
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp)
-                        ) {
+            ) {
                             Text(
                                 text = event.title,
                                 fontSize = 18.sp,
