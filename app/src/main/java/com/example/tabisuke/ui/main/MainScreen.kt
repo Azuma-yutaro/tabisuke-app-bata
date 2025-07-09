@@ -44,6 +44,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.tabisuke.utils.PdfGenerator
 import com.example.tabisuke.ui.scheduledetail.ScheduleDetailModal
 import com.example.tabisuke.ui.scheduledetail.Schedule
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,9 +244,15 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                                             verticalArrangement = Arrangement.Center,
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            val icon = getIconFromString(buttonConfig.icon)
-                                            if (icon != null) {
-                                                Icon(icon, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
+                                            val context = LocalContext.current
+                                            val resId = context.resources.getIdentifier(buttonConfig.icon, "drawable", context.packageName)
+                                            if (resId != 0) {
+                                                Icon(
+                                                    painter = painterResource(id = resId),
+                                                    contentDescription = buttonConfig.text,
+                                                    modifier = Modifier.size(28.dp),
+                                                    tint = Color.Unspecified
+                                                )
                                                 Spacer(modifier = Modifier.height(6.dp))
                                             }
                                             Text(buttonConfig.text, fontSize = 12.sp, color = Color.DarkGray)

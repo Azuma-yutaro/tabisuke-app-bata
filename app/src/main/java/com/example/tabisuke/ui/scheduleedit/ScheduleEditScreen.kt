@@ -25,6 +25,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.tabisuke.ui.main.EventBottomNavBar
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -305,10 +307,15 @@ fun ScheduleEditScreen(
                 // 任意項目
                 OutlinedTextField(
                     value = budget,
-                    onValueChange = { viewModel.onBudgetChange(it) },
+                    onValueChange = { input ->
+                        // 数字のみ許可
+                        val filtered = input.filter { it.isDigit() }
+                        viewModel.onBudgetChange(filtered)
+                    },
                     label = { Text("予算（円）") },
                     placeholder = { Text("例: 1500") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
 
                 var urlError by remember { mutableStateOf("") }
@@ -466,11 +473,13 @@ fun ScheduleEditScreen(
                 enabled = date.isNotEmpty() && time.isNotEmpty() && title.isNotEmpty() && urlError.isEmpty()
             ) {
                 Text(
-                    if (scheduleId != null) "行事を更新" else "行事を登録して続ける", 
+                    if (scheduleId != null) "行事を更新" else "登録", 
                     fontSize = 16.sp, 
                     fontWeight = FontWeight.Medium
                 )
             }
+            // ボタン下に余白を追加
+            Spacer(modifier = Modifier.height(24.dp))
 
             // 編集時のみ削除ボタンを表示
             if (scheduleId != null) {

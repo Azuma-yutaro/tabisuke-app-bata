@@ -47,12 +47,6 @@ fun ScheduleDetailModal(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "行事詳細",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
@@ -171,13 +165,6 @@ fun ScheduleDetailModal(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // 閉じるボタン
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("閉じる")
-                }
             }
         }
     }

@@ -22,7 +22,18 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Color
+import com.example.tabisuke.R
+import androidx.compose.foundation.background
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.foundation.clickable
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewModel()) {
     val email by viewModel.email.collectAsState()
@@ -83,63 +94,113 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewMo
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = { viewModel.onEmailChange(it) },
-            label = { Text("メールアドレス") },
-            modifier = Modifier.fillMaxWidth()
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 背景画像
+        Image(
+            painter = painterResource(id = R.drawable.back05),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { viewModel.onPasswordChange(it) },
-            label = { Text("パスワード") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.login() },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .align(Alignment.Center),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("ログイン")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = { viewModel.signUp() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("新規登録")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { 
-                android.util.Log.d("LoginScreen", "Googleログインボタンタップ")
-                googleSignInLauncher.launch(googleSignInClient.signInIntent) 
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Googleでログイン")
-        }
-
-        loginError?.let {
+            Text(
+                text = "さあ、旅の準備を始めよう",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF6A4C93),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 32.dp),
+                lineHeight = 32.sp
+            )
+            // Googleログイン画像ボタン
+            Image(
+                painter = painterResource(id = R.drawable.google_login),
+                contentDescription = "Googleでログイン",
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(84.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp)
+                    .clickable {
+                        android.util.Log.d("LoginScreen", "Googleログインボタンタップ")
+                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                    },
+                alignment = Alignment.Center
+            )
+            // 「または、」テキスト（Googleの下）
+            Text(
+                text = "または、",
+                fontSize = 15.sp,
+                color = Color(0xFF888888),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 12.dp)
+            )
+            OutlinedTextField(
+                value = email,
+                onValueChange = { viewModel.onEmailChange(it) },
+                label = { Text("メールアドレス") },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(40.dp)
+                    .align(Alignment.CenterHorizontally),
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { viewModel.onPasswordChange(it) },
+                label = { Text("パスワード") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(40.dp)
+                    .align(Alignment.CenterHorizontally),
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { viewModel.login() },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(40.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text("ログイン", fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = { viewModel.signUp() },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(40.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text("新規登録", fontSize = 12.sp)
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = it, color = MaterialTheme.colorScheme.error)
+            Text(
+                text = "パスワードを忘れる心配がないGoogleログインを推奨します。",
+                fontSize = 11.sp,
+                color = Color.DarkGray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .align(Alignment.CenterHorizontally)
+            )
+            loginError?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

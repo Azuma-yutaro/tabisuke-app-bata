@@ -23,6 +23,65 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import java.time.format.DateTimeFormatter
 import com.example.tabisuke.ui.main.EventBottomNavBar
+import androidx.compose.ui.res.painterResource
+import androidx.compose.runtime.Composable
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IconDropdown(
+    label: String,
+    selectedValue: String?,
+    onSelect: (String) -> Unit
+) {
+    val iconOptions = listOf(
+        "情報" to "info",
+        "車" to "car",
+        "電車" to "train",
+        "飛行機" to "air",
+        "宿" to "hotel",
+        "食べ物" to "food"
+    )
+    var expanded by remember { mutableStateOf(false) }
+    val selectedIcon = iconOptions.find { it.second == (selectedValue ?: "") } ?: iconOptions[0]
+    val context = LocalContext.current
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = selectedIcon.first,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            iconOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.first) },
+                    onClick = {
+                        onSelect(option.second)
+                        expanded = false
+                    },
+                    leadingIcon = {
+                        val resId = context.resources.getIdentifier(option.second, "drawable", context.packageName)
+                        if (resId != 0) {
+                            Icon(
+                                painter = painterResource(id = resId),
+                                contentDescription = option.first,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -454,12 +513,11 @@ fun ManagementScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = event?.button1?.icon ?: "",
-                        onValueChange = { viewModel.updateButton1Icon(it) },
-                        label = { Text("ボタン1 アイコン") },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("例: Add, Settings, Share") }
+                    // アイコン選択ドロップダウン（共通関数化）
+                    IconDropdown(
+                        label = "ボタン1 アイコン",
+                        selectedValue = event?.button1?.icon,
+                        onSelect = { viewModel.updateButton1Icon(it) }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -497,12 +555,11 @@ fun ManagementScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = event?.button2?.icon ?: "",
-                        onValueChange = { viewModel.updateButton2Icon(it) },
-                        label = { Text("ボタン2 アイコン") },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("例: Add, Settings, Share") }
+                    // ボタン2アイコン
+                    IconDropdown(
+                        label = "ボタン2 アイコン",
+                        selectedValue = event?.button2?.icon,
+                        onSelect = { viewModel.updateButton2Icon(it) }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -540,12 +597,11 @@ fun ManagementScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = event?.button3?.icon ?: "",
-                        onValueChange = { viewModel.updateButton3Icon(it) },
-                        label = { Text("ボタン3 アイコン") },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("例: Add, Settings, Share") }
+                    // ボタン3アイコン
+                    IconDropdown(
+                        label = "ボタン3 アイコン",
+                        selectedValue = event?.button3?.icon,
+                        onSelect = { viewModel.updateButton3Icon(it) }
                     )
                 }
             }
