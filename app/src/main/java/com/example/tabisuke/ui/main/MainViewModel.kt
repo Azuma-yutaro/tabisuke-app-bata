@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.example.tabisuke.ui.scheduledetail.Schedule
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 data class Event(
     val id: String,
@@ -27,12 +29,20 @@ data class ButtonConfig(
     val url: String
 )
 
+data class ScheduleWithDate(
+    val schedule: Schedule,
+    val actualDate: String
+)
+
 class MainViewModel : ViewModel() {
     private val _event = MutableStateFlow<Event?>(null)
     val event: StateFlow<Event?> = _event
 
     private val _schedules = MutableStateFlow<List<Schedule>>(emptyList())
     val schedules: StateFlow<List<Schedule>> = _schedules
+
+    private val _schedulesWithDates = MutableStateFlow<List<ScheduleWithDate>>(emptyList())
+    val schedulesWithDates: StateFlow<List<ScheduleWithDate>> = _schedulesWithDates
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
@@ -93,7 +103,7 @@ class MainViewModel : ViewModel() {
                     val data = doc.data
                     if (data != null) {
                         Schedule(
-                            date = data["date"] as? String ?: "",
+                            dayNumber = (data["dayNumber"] as? Long)?.toInt() ?: 1,
                             time = data["time"] as? String ?: "",
                             title = data["title"] as? String ?: "",
                             budget = data["budget"] as? Long ?: 0L,
@@ -103,10 +113,41 @@ class MainViewModel : ViewModel() {
                     } else null
                 }
 
-                _schedules.value = schedulesList.sortedWith(compareBy({ it.date }, { it.time }))
+                val sortedSchedules = schedulesList.sortedWith(compareBy({ it.dayNumber }, { it.time }))
+                
+                _schedules.value = sortedSchedules
+                
+                // 日付付きのスケジュールリストを生成
+                val eventData = _event.value
+                if (eventData != null && eventData.startDate.isNotEmpty()) {
+                    val schedulesWithDates = sortedSchedules.map { schedule ->
+                        ScheduleWithDate(
+                            schedule = schedule,
+                            actualDate = getDateFromDayNumber(schedule.dayNumber, eventData.startDate)
+                        )
+                    }
+                    _schedulesWithDates.value = schedulesWithDates
+                }
             } catch (e: Exception) {
                 // エラーハンドリング
             }
         }
     }
-}
+
+    // 日数から実際の日付を計算
+    private fun getDateFromDayNumber(dayNumber: Int, startDate: String): String {
+        return try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val start = LocalDate.parse(startDate, formatter)
+            val targetDate = start.plusDays((dayNumber - 1).toLong())
+            targetDate.format(formatter)
+        } catch (e: Exception) {
+            "日付不明"
+        }
+    }
+
+    // 日数から表示用の文字列を生成
+    fun getDayDisplayText(dayNumber: Int): String {
+        return "${dayNumber}日目"
+    }
+} 

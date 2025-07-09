@@ -29,7 +29,13 @@ fun ScheduleEditScreen(
     val budget by viewModel.budget.collectAsState()
     val url by viewModel.url.collectAsState()
     val image by viewModel.image.collectAsState()
+    val dayOptions by viewModel.dayOptions.collectAsState()
+    val eventStartDate by viewModel.eventStartDate.collectAsState()
+    val eventEndDate by viewModel.eventEndDate.collectAsState()
     val context = LocalContext.current
+
+    // ドロップダウン状態
+    var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.setGroupAndEventId(groupId, eventId)
@@ -67,14 +73,65 @@ fun ScheduleEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // イベント期間表示
+            if (eventStartDate != null && eventEndDate != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "イベント期間",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${eventStartDate} 〜 ${eventEndDate}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
             // 必須項目
-            OutlinedTextField(
-                value = date,
-                onValueChange = { viewModel.onDateChange(it) },
-                label = { Text("行く日にち *") },
-                placeholder = { Text("例: 2024-01-15") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // 日数選択ドロップダウン
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("行く日にち *") },
+                    placeholder = { Text("日数を選択してください") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    dayOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                viewModel.onDateChange(option)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = time,

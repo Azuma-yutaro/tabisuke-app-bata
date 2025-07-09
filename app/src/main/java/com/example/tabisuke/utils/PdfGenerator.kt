@@ -10,6 +10,8 @@ import com.example.tabisuke.ui.scheduledetail.Schedule
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 object PdfGenerator {
 
@@ -44,8 +46,10 @@ object PdfGenerator {
 
         // Schedules
         paint.textSize = 16f
-        schedules.groupBy { it.date }.toSortedMap().forEach { (date, dailySchedules) ->
-            canvas.drawText("\n日付: $date", 40f, yPos, paint)
+        schedules.groupBy { it.dayNumber }.toSortedMap().forEach { (dayNumber, dailySchedules) ->
+            // 実際の日付を計算
+            val actualDate = getDateFromDayNumber(dayNumber, event.startDate)
+            canvas.drawText("\n${dayNumber}日目 ($actualDate)", 40f, yPos, paint)
             yPos += 20f
             dailySchedules.sortedBy { it.time }.forEach { schedule ->
                 canvas.drawText("  ${schedule.time} - ${schedule.title} (${schedule.budget}円)", 60f, yPos, paint)
@@ -69,6 +73,18 @@ object PdfGenerator {
         } catch (e: IOException) {
             e.printStackTrace()
             null
+        }
+    }
+
+    // 日数から実際の日付を計算
+    private fun getDateFromDayNumber(dayNumber: Int, startDate: String): String {
+        return try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val start = LocalDate.parse(startDate, formatter)
+            val targetDate = start.plusDays((dayNumber - 1).toLong())
+            targetDate.format(formatter)
+        } catch (e: Exception) {
+            "日付不明"
         }
     }
 }

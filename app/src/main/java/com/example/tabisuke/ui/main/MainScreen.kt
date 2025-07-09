@@ -49,6 +49,7 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
     val viewModel: MainViewModel = viewModel()
     val event by viewModel.event.collectAsState()
     val schedules by viewModel.schedules.collectAsState()
+    val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     
@@ -143,10 +144,10 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     .weight(1f)
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // 行事リスト（日付ごとにグループ化）
-                val groupedSchedules = schedules.groupBy { it.date }.toSortedMap()
+                // 行事リスト（日数ごとにグループ化）
+                val groupedSchedules = schedulesWithDates.groupBy { it.schedule.dayNumber }.toSortedMap()
                 
-                groupedSchedules.forEach { (date, dailySchedules) ->
+                groupedSchedules.forEach { (dayNumber, dailySchedules) ->
                     item {
                         Card(
                             modifier = Modifier
@@ -160,20 +161,34 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             Column(
                                 modifier = Modifier.padding(16.dp)
                             ) {
-                                Text(
-                                    text = date,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${dayNumber}日目",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    // 実際の日付を表示
+                                    dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
+                                        Text(
+                                            text = actualDate,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                     
-                    items(dailySchedules.sortedBy { it.time }) { schedule ->
+                    items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
                         ScheduleItem(
-                            schedule = schedule,
-                            onClick = { showScheduleDetail = schedule }
+                            schedule = scheduleWithDate.schedule,
+                            onClick = { showScheduleDetail = scheduleWithDate.schedule }
                         )
                     }
                 }

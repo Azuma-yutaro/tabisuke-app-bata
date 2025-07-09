@@ -107,7 +107,7 @@ fun ScheduleDetailModal(
 }
 
 data class Schedule(
-    val date: String,
+    val dayNumber: Int,  // 何日目かを数値で保存
     val time: String,
     val title: String,
     val budget: Long,
