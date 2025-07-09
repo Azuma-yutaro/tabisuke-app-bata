@@ -6,17 +6,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import android.webkit.WebView
+import android.webkit.WebViewClient
 
 @Composable
 fun ScheduleDetailModal(
@@ -26,6 +31,16 @@ fun ScheduleDetailModal(
     onEdit: (Schedule) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
+    var showInAppBrowser by remember { mutableStateOf(false) }
+    var urlToOpen by remember { mutableStateOf("") }
+    
+    // アプリ内ブラウザ
+    if (showInAppBrowser) {
+        InAppBrowser(
+            url = urlToOpen,
+            onClose = { showInAppBrowser = false }
+        )
+    }
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -114,8 +129,8 @@ fun ScheduleDetailModal(
                 if (schedule.url.isNotEmpty()) {
                     Button(
                         onClick = { 
-                            onUrlClick(schedule.url)
-                            uriHandler.openUri(schedule.url)
+                            urlToOpen = schedule.url
+                            showInAppBrowser = true
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -165,6 +180,78 @@ fun ScheduleDetailModal(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
+            }
+        }
+    }
+}
+
+@Composable
+fun InAppBrowser(
+    url: String,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    val webView = remember { WebView(context) }
+    
+    LaunchedEffect(url) {
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            setSupportZoom(true)
+            // 外部ブラウザへのリダイレクトを防ぐ設定
+            setSupportMultipleWindows(false)
+            javaScriptCanOpenWindowsAutomatically = false
+        }
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                request?.url?.toString()?.let { urlString ->
+                    view?.loadUrl(urlString)
+                }
+                return true
+            }
+            
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                url?.let { view?.loadUrl(it) }
+                return true
+            }
+        }
+        webView.loadUrl(url)
+    }
+    
+    Dialog(onDismissRequest = onClose) {
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(0.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column {
+                // ヘッダー
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "戻る"
+                        )
+                    }
+                }
+                
+                // WebView
+                AndroidView(
+                    factory = { webView },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 0.dp, vertical = 0.dp)
+                )
             }
         }
     }
