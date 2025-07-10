@@ -21,29 +21,88 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import com.example.tabisuke.R
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JoinGroupScreen(navController: NavController, viewModel: JoinGroupViewModel = viewModel()) {
+fun JoinGroupScreen(
+    navController: NavController,
+    viewModel: JoinGroupViewModel = viewModel()
+) {
     val groupId by viewModel.groupId.collectAsState()
     val joinError by viewModel.joinError.collectAsState()
     val context = LocalContext.current
+    
+    // QRコード読み取り用のランチャー
+    val qrScannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val scannedGroupId = result.data?.getStringExtra("group_id")
+            if (scannedGroupId != null) {
+                viewModel.onGroupIdChange(scannedGroupId)
+                Toast.makeText(context, "QRコードを読み取りました: $scannedGroupId", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 確認ダイアログの状態
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var scannedGroupIdForConfirm by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 背景画像
-        Image(
-            painter = painterResource(id = R.drawable.back01),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-        )
-        // 画面上部中央に重ねる
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = "グループ参加",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "戻る"
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 64.dp, start = 24.dp, end = 24.dp)
-                .align(Alignment.TopCenter),
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "共有するたび、絆になる。",
@@ -75,6 +134,46 @@ fun JoinGroupScreen(navController: NavController, viewModel: JoinGroupViewModel 
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
+            
+            // QRコード読み取りボタン
+            Button(
+                onClick = {
+                    val intent = android.content.Intent(context, com.example.tabisuke.ui.qrscanner.QRScannerActivity::class.java)
+                    qrScannerLauncher.launch(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF6A4C93)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "QRコード読み取り",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("QRコードを読み取る", fontSize = 16.sp)
+            }
+            
+            // またはのテキスト
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Divider(modifier = Modifier.weight(1f))
+                Text(
+                    text = "または",
+                    fontSize = 14.sp,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Divider(modifier = Modifier.weight(1f))
+            }
+            
             OutlinedTextField(
                 value = groupId,
                 onValueChange = { viewModel.onGroupIdChange(it) },
@@ -85,35 +184,67 @@ fun JoinGroupScreen(navController: NavController, viewModel: JoinGroupViewModel 
                 singleLine = true,
                 textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF6A4C93))
             )
+            
+            // エラーメッセージ
+            joinError?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            
+            // 参加ボタン
             Button(
                 onClick = {
-                    viewModel.joinGroup(
-                        onSuccess = { groupId, eventId ->
-                            Toast.makeText(context, "グループに参加しました！", Toast.LENGTH_SHORT).show()
-                            navController.navigate("home/${groupId}/${eventId}") {
-                                popUpTo("event_list") { inclusive = true }
-                            }
-                        }
-                    )
+                    if (groupId.isNotBlank()) {
+                        showConfirmDialog = true
+                        scannedGroupIdForConfirm = groupId
+                    }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFB8B5FF),
-                    contentColor = Color.DarkGray,
-                    disabledContainerColor = Color(0xFFE0E0F8),
-                    disabledContentColor = Color(0xFF888888)
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF6A4C93)
                 ),
                 enabled = groupId.isNotBlank()
             ) {
-                Text("グループに参加", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("グループに参加", fontSize = 16.sp)
             }
-            joinError?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = it, color = Color.Red, fontSize = 12.sp)
-            }
+        }
+        
+        // 確認ダイアログ
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = {
+                    Text("グループ参加の確認")
+                },
+                text = {
+                    Text("グループID「$scannedGroupIdForConfirm」のグループに参加しますか？")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showConfirmDialog = false
+                            viewModel.joinGroup { groupId, eventId ->
+                                navController.navigate("home/$groupId/$eventId") {
+                                    popUpTo("join_group") { inclusive = true }
+                                }
+                            }
+                        }
+                    ) {
+                        Text("参加する")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showConfirmDialog = false }
+                    ) {
+                        Text("キャンセル")
+                    }
+                }
+            )
         }
     }
 }

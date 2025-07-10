@@ -106,6 +106,13 @@ fun ManagementScreen(
         viewModel.loadEvent(groupId, eventId)
     }
     
+    // 開始日のデフォルト値を今日に設定
+    LaunchedEffect(event) {
+        if (event?.startDate.isNullOrEmpty()) {
+            val today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            viewModel.updateEventStartDate(today)
+        }
+    }
 
 
     Scaffold(
@@ -252,21 +259,39 @@ fun ManagementScreen(
                     }
                 )
             }
-            // 行事タイトル
+            // イベントタイトル
             OutlinedTextField(
                 value = event?.title ?: "",
-                onValueChange = { viewModel.updateEventTitle(it) },
-                label = { Text("行事タイトル") },
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = { 
+                    if (it.length <= 20) {
+                        viewModel.updateEventTitle(it) 
+                    }
+                },
+                label = { Text("イベントタイトル *") },
+                placeholder = { Text("最大20文字") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = (event?.title ?: "").isEmpty() && (event?.title ?: "").isNotEmpty(),
+                supportingText = {
+                    Text("${(event?.title ?: "").length}/20")
+                }
             )
 
             // 説明
             OutlinedTextField(
                 value = event?.description ?: "",
-                onValueChange = { viewModel.updateEventDescription(it) },
+                onValueChange = { 
+                    if (it.length <= 100) {
+                        viewModel.updateEventDescription(it) 
+                    }
+                },
                 label = { Text("説明") },
+                placeholder = { Text("最大100文字") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = 3,
+                supportingText = {
+                    Text("${(event?.description ?: "").length}/100")
+                }
             )
 
             // 期間（日付入力改善）
@@ -276,75 +301,101 @@ fun ManagementScreen(
             ) {
                 OutlinedTextField(
                     value = event?.startDate ?: "",
-                    onValueChange = { viewModel.updateEventStartDate(it) },
-                    label = { Text("開始日") },
+                    onValueChange = { },
+                    label = { Text("開始日 *") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("YYYY-MM-DD") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
-                    ),
-                    visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None
+                    placeholder = { Text("カレンダーから選択") },
+                    isError = (event?.startDate ?: "").isEmpty() && (event?.startDate ?: "").isNotEmpty(),
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.showStartDatePicker() }) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "カレンダーを開く"
+                            )
+                        }
+                    }
                 )
                 OutlinedTextField(
                     value = event?.endDate ?: "",
-                    onValueChange = { viewModel.updateEventEndDate(it) },
-                    label = { Text("終了日") },
+                    onValueChange = { },
+                    label = { Text("終了日 *") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("YYYY-MM-DD") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
-                    ),
-                    visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None
+                    placeholder = { Text("カレンダーから選択") },
+                    isError = (event?.endDate ?: "").isEmpty() && (event?.endDate ?: "").isNotEmpty(),
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.showEndDatePicker() }) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "カレンダーを開く"
+                            )
+                        }
+                    }
                 )
             }
 
-            // 日付選択ボタン
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { viewModel.showStartDatePicker() },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("開始日を選択", fontSize = 12.sp)
-                }
-                
-                Button(
-                    onClick = { viewModel.showEndDatePicker() },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("終了日を選択", fontSize = 12.sp)
+            // 日付バリデーションメッセージ
+            var dateValidationMessage by remember { mutableStateOf("") }
+            var isDateValid by remember { mutableStateOf(true) }
+            
+            LaunchedEffect(event?.startDate, event?.endDate) {
+                if (!event?.startDate.isNullOrEmpty() && !event?.endDate.isNullOrEmpty()) {
+                    try {
+                        val start = java.time.LocalDate.parse(event?.startDate, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        val end = java.time.LocalDate.parse(event?.endDate, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        
+                        if (end.isBefore(start)) {
+                            isDateValid = false
+                            dateValidationMessage = "終了日は開始日以降にしてください"
+                        } else {
+                            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start, end)
+                            if (daysBetween > 30) {
+                                isDateValid = false
+                                dateValidationMessage = "期間は最大30日までです"
+                            } else {
+                                isDateValid = true
+                                dateValidationMessage = ""
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // 日付パースエラーの場合はバリデーションをスキップ
+                    }
                 }
             }
+            
+            if (dateValidationMessage.isNotEmpty()) {
+                Text(
+                    text = dateValidationMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                )
+            }
 
-            // Google Maps URL
+                        // Google Maps URL
             var mapUrlError by remember { mutableStateOf("") }
             val mapUrl = event?.mapUrl ?: ""
             OutlinedTextField(
                 value = mapUrl,
                 onValueChange = {
-                    viewModel.updateEventMapUrl(it)
-                    mapUrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                        "正しいURLを入力してください"
-                    } else {
-                        ""
+                    if (it.length <= 100) {
+                        viewModel.updateEventMapUrl(it)
+                        mapUrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                            "正しいURLを入力してください"
+                        } else {
+                            ""
+                        }
                     }
                 },
                 label = { Text("Google Maps URL") },
+                placeholder = { Text("https://maps.google.com/... (最大100文字)") },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("https://maps.google.com/...") },
-                isError = mapUrlError.isNotEmpty()
+                singleLine = true,
+                isError = mapUrlError.isNotEmpty(),
+                supportingText = {
+                    Text("${mapUrl.length}/100")
+                }
             )
             if (mapUrlError.isNotEmpty()) {
                 Text(
@@ -356,108 +407,154 @@ fun ManagementScreen(
             }
 
             // 権限設定
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+            if (isEventCreator) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
-                    Text(
-                        text = "権限設定",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // 権限の説明
-                    Text(
-                        text = "• オーナー: 完全な管理権限\n• 編集者: 行事の編集可能\n• 閲覧者: 閲覧のみ\n• ゲスト: シリアルコードでアクセス",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // メンバー権限管理
-                    val members by viewModel.members.collectAsState()
-                    
-                    Text(
-                        text = "メンバー権限管理",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    if (members.isEmpty()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
                         Text(
-                            text = "メンバーが登録されていません",
+                            text = "グループメンバー権限設定",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "この操作はグループ全体に適応されます",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                    } else {
-                        members.forEach { member ->
-                            MemberPermissionItem(
-                                member = member,
-                                onRoleChange = { newRole ->
-                                    viewModel.updateMemberRole(
-                                        groupId = groupId,
-                                        personalId = member.personalId,
-                                        newRole = newRole,
-                                        onSuccess = {
-                                            Toast.makeText(context, "${member.name}の権限を${newRole}に変更しました", Toast.LENGTH_SHORT).show()
-                                        },
-                                        onFailure = { e ->
-                                            Toast.makeText(context, "権限変更に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
-                                        }
-                                    )
-                                }
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // ゲストアクセス設定
-                    val guestAccess by viewModel.guestAccess.collectAsState()
-                    
-                    Text(
-                        text = "ゲストアクセス設定",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 権限の説明
                         Text(
-                            text = "シリアルコードでアクセスを許可",
+                            text = "• オーナー: 完全な管理権限\n• 編集者: グループにメンバーの追加・削除を行えます\n• 閲覧者: 閲覧のみ\n• ゲスト: シリアルコードでアクセス",
                             fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // メンバー権限管理
+                        val members by viewModel.members.collectAsState()
+                        
+                        Text(
+                            text = "メンバー権限管理",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Switch(
-                            checked = guestAccess.enabled,
-                            onCheckedChange = { viewModel.updateGuestAccessEnabled(it) }
-                        )
-                    }
-                    
-                    if (guestAccess.enabled) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = guestAccess.serialCode,
-                            onValueChange = { viewModel.updateGuestAccessSerialCode(it) },
-                            label = { Text("シリアルコード") },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("例: ABC123") }
+                        
+                        if (members.isEmpty()) {
+                            Text(
+                                text = "メンバーが登録されていません",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        } else {
+                            members.forEach { member ->
+                                // イベント作成者以外のメンバーのみドロップダウンを表示
+                                if (member.personalId != viewModel.getCurrentUserId()) {
+                                    MemberPermissionItem(
+                                        member = member,
+                                        onRoleChange = { newRole ->
+                                            viewModel.updateMemberRole(
+                                                groupId = groupId,
+                                                personalId = member.personalId,
+                                                newRole = newRole,
+                                                onSuccess = {
+                                                    Toast.makeText(context, "${member.name}の権限を${newRole}に変更しました", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onFailure = { e ->
+                                                    Toast.makeText(context, "権限変更に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+                                                }
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    // イベント作成者は読み取り専用で表示
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 2.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = member.name,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            
+                                            OutlinedTextField(
+                                                value = "オーナー",
+                                                onValueChange = {},
+                                                readOnly = true,
+                                                modifier = Modifier.width(100.dp),
+                                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // ゲストアクセス設定
+                        val guestAccess by viewModel.guestAccess.collectAsState()
+                        
+                        Text(
+                            text = "ゲストアクセス設定",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                            Text(
+                                text = "シリアルコードでアクセスを許可",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                    Switch(
+                                checked = guestAccess.enabled,
+                                onCheckedChange = { viewModel.updateGuestAccessEnabled(it) }
+                    )
+                }
+                        
+                        if (guestAccess.enabled) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                                value = guestAccess.serialCode,
+                                onValueChange = { viewModel.updateGuestAccessSerialCode(it) },
+                        label = { Text("シリアルコード") },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("例: ABC123") }
+                            )
+                        }
                     }
                 }
             }
@@ -480,29 +577,45 @@ fun ManagementScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ボタン1
+                                        // ボタン1
                     OutlinedTextField(
                         value = event?.button1?.text ?: "",
-                        onValueChange = { viewModel.updateButton1Text(it) },
+                        onValueChange = { 
+                            if (it.length <= 100) {
+                                viewModel.updateButton1Text(it) 
+                            }
+                        },
                         label = { Text("ボタン1 テキスト") },
-                        modifier = Modifier.fillMaxWidth()
+                        placeholder = { Text("最大100文字") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        supportingText = {
+                            Text("${(event?.button1?.text ?: "").length}/100")
+                        }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     var button1UrlError by remember { mutableStateOf("") }
                     val button1Url = event?.button1?.url ?: ""
-                    OutlinedTextField(
+                                    OutlinedTextField(
                         value = button1Url,
                         onValueChange = {
-                            viewModel.updateButton1Url(it)
-                            button1UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                "正しいURLを入力してください"
-                            } else {
-                                ""
+                            if (it.length <= 100) {
+                                viewModel.updateButton1Url(it)
+                                button1UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                    "正しいURLを入力してください"
+                                } else {
+                                    ""
+                                }
                             }
                         },
                         label = { Text("ボタン1 URL") },
+                        placeholder = { Text("https://... (最大100文字)") },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = button1UrlError.isNotEmpty()
+                        singleLine = true,
+                        isError = button1UrlError.isNotEmpty(),
+                        supportingText = {
+                            Text("${button1Url.length}/100")
+                        }
                     )
                     if (button1UrlError.isNotEmpty()) {
                         Text(
@@ -520,31 +633,47 @@ fun ManagementScreen(
                         onSelect = { viewModel.updateButton1Icon(it) }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // ボタン2
+                                        // ボタン2
                     OutlinedTextField(
                         value = event?.button2?.text ?: "",
-                        onValueChange = { viewModel.updateButton2Text(it) },
+                        onValueChange = { 
+                            if (it.length <= 100) {
+                                viewModel.updateButton2Text(it) 
+                            }
+                        },
                         label = { Text("ボタン2 テキスト") },
-                        modifier = Modifier.fillMaxWidth()
+                        placeholder = { Text("最大100文字") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        supportingText = {
+                            Text("${(event?.button2?.text ?: "").length}/100")
+                        }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     var button2UrlError by remember { mutableStateOf("") }
                     val button2Url = event?.button2?.url ?: ""
-                    OutlinedTextField(
+                                    OutlinedTextField(
                         value = button2Url,
                         onValueChange = {
-                            viewModel.updateButton2Url(it)
-                            button2UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                "正しいURLを入力してください"
-                            } else {
-                                ""
+                            if (it.length <= 100) {
+                                viewModel.updateButton2Url(it)
+                                button2UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                    "正しいURLを入力してください"
+                                } else {
+                                    ""
+                                }
                             }
                         },
                         label = { Text("ボタン2 URL") },
+                        placeholder = { Text("https://... (最大100文字)") },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = button2UrlError.isNotEmpty()
+                        singleLine = true,
+                        isError = button2UrlError.isNotEmpty(),
+                        supportingText = {
+                            Text("${button2Url.length}/100")
+                        }
                     )
                     if (button2UrlError.isNotEmpty()) {
                         Text(
@@ -562,31 +691,47 @@ fun ManagementScreen(
                         onSelect = { viewModel.updateButton2Icon(it) }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // ボタン3
+                                        // ボタン3
                     OutlinedTextField(
                         value = event?.button3?.text ?: "",
-                        onValueChange = { viewModel.updateButton3Text(it) },
+                        onValueChange = { 
+                            if (it.length <= 100) {
+                                viewModel.updateButton3Text(it) 
+                            }
+                        },
                         label = { Text("ボタン3 テキスト") },
-                        modifier = Modifier.fillMaxWidth()
+                        placeholder = { Text("最大100文字") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        supportingText = {
+                            Text("${(event?.button3?.text ?: "").length}/100")
+                        }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     var button3UrlError by remember { mutableStateOf("") }
                     val button3Url = event?.button3?.url ?: ""
-                    OutlinedTextField(
+                                    OutlinedTextField(
                         value = button3Url,
                         onValueChange = {
-                            viewModel.updateButton3Url(it)
-                            button3UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                "正しいURLを入力してください"
-                            } else {
-                                ""
+                            if (it.length <= 100) {
+                                viewModel.updateButton3Url(it)
+                                button3UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                                    "正しいURLを入力してください"
+                                } else {
+                                    ""
+                                }
                             }
                         },
                         label = { Text("ボタン3 URL") },
+                        placeholder = { Text("https://... (最大100文字)") },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = button3UrlError.isNotEmpty()
+                        singleLine = true,
+                        isError = button3UrlError.isNotEmpty(),
+                        supportingText = {
+                            Text("${button3Url.length}/100")
+                        }
                     )
                     if (button3UrlError.isNotEmpty()) {
                         Text(
@@ -621,7 +766,11 @@ fun ManagementScreen(
                         }
                     )
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !(event?.title.isNullOrEmpty()) && 
+                         !(event?.startDate.isNullOrEmpty()) && 
+                         !(event?.endDate.isNullOrEmpty()) && 
+                         isDateValid
             ) {
                 Text("保存", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
@@ -701,7 +850,7 @@ fun MemberPermissionItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val roles = listOf("owner", "editor", "viewer")
-    
+
     // 権限の日本語表示
     fun getRoleDisplayName(role: String): String {
         return when (role) {
@@ -715,7 +864,7 @@ fun MemberPermissionItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -724,50 +873,42 @@ fun MemberPermissionItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
+                .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+            Text(
+                text = member.name,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = member.name,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "ID: ${member.personalId}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
+            )
             
-            ExposedDropdownMenuBox(
-                expanded = expanded,
+        ExposedDropdownMenuBox(
+            expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
-            ) {
-                OutlinedTextField(
+        ) {
+            OutlinedTextField(
                     value = getRoleDisplayName(member.role),
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .menuAnchor()
-                        .width(120.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    roles.forEach { role ->
+                        .width(100.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                roles.forEach { role ->
                         DropdownMenuItem(
                             text = { Text(getRoleDisplayName(role)) },
                             onClick = {
-                                onRoleChange(role)
-                                expanded = false
+                        onRoleChange(role)
+                        expanded = false
                             }
                         )
                     }

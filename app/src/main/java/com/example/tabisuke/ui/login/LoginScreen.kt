@@ -151,11 +151,11 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewMo
                 label = { Text("メールアドレス") },
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(40.dp)
+                    .height(56.dp)
                     .align(Alignment.CenterHorizontally),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { viewModel.onPasswordChange(it) },
@@ -163,29 +163,29 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewMo
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(40.dp)
+                    .height(56.dp)
                     .align(Alignment.CenterHorizontally),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { viewModel.login() },
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(40.dp)
+                    .height(56.dp)
                     .align(Alignment.CenterHorizontally)
             ) {
-                Text("ログイン", fontSize = 12.sp)
+                Text("ログイン", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = { viewModel.signUp() },
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(40.dp)
+                    .height(56.dp)
                     .align(Alignment.CenterHorizontally)
             ) {
-                Text("新規登録", fontSize = 12.sp)
+                Text("新規登録", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(

@@ -33,6 +33,7 @@ import com.example.tabisuke.ui.createevent.CreateEventScreen
 import com.example.tabisuke.ui.joingroup.JoinGroupScreen
 import com.example.tabisuke.ui.budget.BudgetScreen
 import com.example.tabisuke.ui.groupsettings.GroupSettingsScreen
+import com.example.tabisuke.ui.membermanagement.MemberManagementScreen
 import com.google.firebase.auth.FirebaseAuth
 import android.content.Context
 import android.content.SharedPreferences
@@ -157,6 +158,10 @@ fun AppNavigator() {
         composable("group_settings/{groupId}") { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             GroupSettingsScreen(navController = navController, groupId = groupId)
+        }
+        composable("member_management/{groupId}") { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
+            MemberManagementScreen(navController = navController, groupId = groupId)
         }
     }
 }

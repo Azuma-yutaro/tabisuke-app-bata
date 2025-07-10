@@ -27,6 +27,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.tabisuke.ui.main.EventBottomNavBar
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -298,10 +300,59 @@ fun ScheduleEditScreen(
 
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { viewModel.onTitleChange(it) },
+                    onValueChange = { 
+                        // 改行文字を除去
+                        val cleanText = it.replace("\n", "")
+                        viewModel.onTitleChange(cleanText) 
+                    },
                     label = { Text("タイトル *") },
                     placeholder = { Text("例: 昼食") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (date.isNotEmpty() && time.isNotEmpty() && title.isNotEmpty()) {
+                                if (scheduleId != null) {
+                                    viewModel.updateSchedule(
+                                        scheduleId = scheduleId,
+                                        onSuccess = {
+                                            Toast.makeText(
+                                                context,
+                                                "行事を更新しました！",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            navController.popBackStack()
+                                        },
+                                        onFailure = { e ->
+                                            Toast.makeText(
+                                                context,
+                                                "更新に失敗しました: ${e.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    )
+                                } else {
+                                    viewModel.saveSchedule(
+                                        onSuccess = {
+                                            Toast.makeText(
+                                                context,
+                                                "行事を登録しました！",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+                                        onFailure = { e ->
+                                            Toast.makeText(
+                                                context,
+                                                "登録に失敗しました: ${e.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    )
                 )
 
                 // 任意項目

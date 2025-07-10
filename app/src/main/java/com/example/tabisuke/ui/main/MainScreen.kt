@@ -49,6 +49,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import com.example.tabisuke.R
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,39 +61,40 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         typography = androidx.compose.material3.MaterialTheme.typography
     ) {
         // ここから元のMainScreenの中身全体
-        val viewModel: MainViewModel = viewModel()
-        val event by viewModel.event.collectAsState()
+    val viewModel: MainViewModel = viewModel()
+    val event by viewModel.event.collectAsState()
         val schedules by viewModel.schedules.collectAsState()
         val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
-        val context = LocalContext.current
-        val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
         
         var showScheduleDetail by remember { mutableStateOf<Schedule?>(null) }
+        var showShareBottomSheet by remember { mutableStateOf(false) }
 
-        val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            isGranted: Boolean ->
-            if (isGranted) {
-                event?.let { eventData ->
+    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        isGranted: Boolean ->
+        if (isGranted) {
+            event?.let { eventData ->
                     val file = PdfGenerator.generatePdf(context, eventData, schedules, "${eventData.title}.pdf")
-                    if (file != null) {
-                        Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
-                    }
+                if (file != null) {
+                    Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
             }
+        } else {
+            Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
         }
+    }
 
         LaunchedEffect(groupId, eventId) {
-            viewModel.fetchEvent(groupId, eventId)
+    viewModel.fetchEvent(groupId, eventId)
             viewModel.loadSchedules(groupId, eventId)
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
+    Scaffold(
+        topBar = {
+            TopAppBar(
                     title = { 
                         Column {
                             Row(
@@ -122,11 +125,11 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                         containerColor = androidx.compose.ui.graphics.Color.White,
                         titleContentColor = androidx.compose.ui.graphics.Color.White
                     ),
-                    actions = {
-                        IconButton(onClick = { requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) }) {
-                            Icon(Icons.Filled.Share, contentDescription = "PDFをダウンロード", tint = androidx.compose.ui.graphics.Color(0xFF666666))
-                        }
-                        IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
+                actions = {
+                    IconButton(onClick = { showShareBottomSheet = true }) {
+                            Icon(Icons.Filled.Share, contentDescription = "シェア", tint = androidx.compose.ui.graphics.Color(0xFF666666))
+                    }
+                    IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
                             Icon(Icons.Filled.Settings, contentDescription = "管理画面", tint = androidx.compose.ui.graphics.Color(0xFF666666))
                         }
                     }
@@ -139,8 +142,8 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     eventId = eventId,
                     mapUrl = event?.mapUrl
                 )
-            }
-        ) { padding ->
+        }
+    ) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -240,7 +243,7 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                         ) {
                             val buttons = listOfNotNull(event?.button1, event?.button2, event?.button3)
                             buttons.forEachIndexed { idx, buttonConfig ->
-                                if (buttonConfig.text.isNotBlank()) {
+                        if (buttonConfig.text.isNotBlank()) {
                                     Button(
                                         onClick = {
                                             if (buttonConfig.url.isNotBlank()) uriHandler.openUri(buttonConfig.url)
@@ -407,12 +410,12 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
                             }
+                            }
                         }
                     }
                 }
             }
-        }
-        
+
         // 行事詳細モーダル
         showScheduleDetail?.let { schedule ->
             ScheduleDetailModal(
@@ -424,6 +427,15 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     navController.navigate("schedule_edit/${groupId}/${eventId}/${scheduleToEdit.id}")
                     showScheduleDetail = null
                 }
+            )
+        }
+
+        // シェアBottomSheet
+        if (showShareBottomSheet) {
+            ShareBottomSheet(
+                eventName = event?.title ?: "イベント",
+                groupId = groupId,
+                onDismiss = { showShareBottomSheet = false }
             )
         }
     }
@@ -582,6 +594,141 @@ fun EventBottomNavBar(
                     }
                 }
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShareBottomSheet(
+    eventName: String,
+    groupId: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // タイトル
+            Text(
+                text = "イベントをシェア",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // イベント名
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "イベント名",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = eventName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // グループID
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "グループID",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = groupId,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(groupId))
+                                Toast.makeText(context, "グループIDをコピーしました", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "コピー",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 説明テキスト
+            Text(
+                text = "グループIDを共有して、みんなで共同編集しよう",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+
+            // 閉じるボタン
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(
+                    text = "閉じる",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

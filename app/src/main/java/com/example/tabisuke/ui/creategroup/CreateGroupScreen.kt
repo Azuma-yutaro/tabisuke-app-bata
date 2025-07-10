@@ -20,6 +20,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import com.example.tabisuke.R
 
 @Composable
@@ -75,13 +81,56 @@ fun CreateGroupScreen(navController: NavController, viewModel: CreateGroupViewMo
             )
             OutlinedTextField(
                 value = groupName,
-                onValueChange = { viewModel.onGroupNameChange(it) },
+                onValueChange = { 
+                    // 改行文字を除去
+                    val cleanText = it.replace("\n", "")
+                    if (cleanText.length <= 15) {
+                        viewModel.onGroupNameChange(cleanText) 
+                    }
+                },
                 label = { Text("グループ名") },
+                placeholder = { Text("最大15文字") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF6A4C93))
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (groupName.isNotBlank()) {
+                            viewModel.createGroup(
+                                onSuccess = { groupId ->
+                                    Toast.makeText(context, "グループを作成しました！", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("group_list") {
+                                        popUpTo("create_group") { inclusive = true }
+                                    }
+                                },
+                                onFailure = { e ->
+                                    Toast.makeText(context, "グループ作成に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        }
+                    },
+                    onNext = {
+                        if (groupName.isNotBlank()) {
+                            viewModel.createGroup(
+                                onSuccess = { groupId ->
+                                    Toast.makeText(context, "グループを作成しました！", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("group_list") {
+                                        popUpTo("create_group") { inclusive = true }
+                                    }
+                                },
+                                onFailure = { e ->
+                                    Toast.makeText(context, "グループ作成に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        }
+                    }
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF6A4C93)),
+                supportingText = {
+                    Text("${groupName.length}/15")
+                }
             )
             Button(
                 onClick = {

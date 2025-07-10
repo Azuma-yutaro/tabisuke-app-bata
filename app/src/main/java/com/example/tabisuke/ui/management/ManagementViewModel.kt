@@ -71,6 +71,10 @@ class ManagementViewModel : ViewModel() {
     private var _groupId = ""
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
+    fun getCurrentUserId(): String {
+        return com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    }
+
     fun loadEvent(groupId: String, eventId: String) {
         _groupId = groupId
         viewModelScope.launch {

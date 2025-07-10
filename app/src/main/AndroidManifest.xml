@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -64,6 +66,12 @@
                     android:pathPattern="/.*" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".ui.qrscanner.QRScannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.HelloAndroid" />
     </application>
 
 </manifest>
