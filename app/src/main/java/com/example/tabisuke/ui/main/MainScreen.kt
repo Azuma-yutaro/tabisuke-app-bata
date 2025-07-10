@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,6 +52,8 @@ import com.example.tabisuke.R
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,23 +70,28 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val clipboardManager = LocalClipboardManager.current
+    val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    var pendingDownload by remember { mutableStateOf(false) }
         
         var showScheduleDetail by remember { mutableStateOf<Schedule?>(null) }
         var showShareBottomSheet by remember { mutableStateOf(false) }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        isGranted: Boolean ->
-        if (isGranted) {
+    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+        if (isGranted && pendingDownload) {
             event?.let { eventData ->
-                    val file = PdfGenerator.generatePdf(context, eventData, schedules, "${eventData.title}.pdf")
+                val fileName = "イベントしおり-tabisuke-$today.pdf"
+                val file = PdfGenerator.generatePdf(context, eventData, schedules, fileName)
                 if (file != null) {
                     Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
                 } else {
                     Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
                 }
             }
-        } else {
+            pendingDownload = false
+        } else if (!isGranted && pendingDownload) {
             Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
+            pendingDownload = false
         }
     }
 
@@ -309,7 +317,10 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             }
                             // ダウンロード
                             Button(
-                                onClick = { requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) },
+                                onClick = {
+                                    pendingDownload = true
+                                    requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                },
                                 modifier = Modifier.size(80.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFFFFE4E1)
@@ -322,7 +333,7 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                                     verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
+                                    Icon(Icons.Filled.ArrowBack, contentDescription = "ダウンロード", modifier = Modifier.size(28.dp), tint = Color.DarkGray)
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text("ダウンロード", fontSize = 12.sp, color = Color.DarkGray)
                                 }

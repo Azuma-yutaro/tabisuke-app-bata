@@ -103,8 +103,8 @@ class PermissionManager {
             
             if (!eventDoc.exists()) return false
             
-            val serialEnabled = eventDoc.getBoolean("serial_enabled") ?: false
-            val storedSerialCode = eventDoc.getString("serial_code") ?: ""
+            val serialEnabled = eventDoc.getBoolean("guestAccessEnabled") ?: false
+            val storedSerialCode = eventDoc.getString("guestAccessSerialCode") ?: ""
             
             serialEnabled && serialCode == storedSerialCode
         } catch (e: Exception) {

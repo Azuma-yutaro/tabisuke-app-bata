@@ -52,11 +52,11 @@ class EventListViewModel : ViewModel() {
                         val event = Event(
                             id = eventId,
                             title = eventData["title"] as? String ?: "",
-                                                    startDate = eventData["startDate"] as? String ?: eventData["start_date"] as? String ?: "",
-                        endDate = eventData["endDate"] as? String ?: eventData["end_date"] as? String ?: "",
+                            startDate = eventData["startDate"] as? String ?: eventData["start_date"] as? String ?: "",
+                            endDate = eventData["endDate"] as? String ?: eventData["end_date"] as? String ?: "",
                             createdBy = eventData["created_by"] as? String ?: "",
-                            serialEnabled = eventData["serial_enabled"] as? Boolean ?: false,
-                            serialCode = eventData["serial_code"] as? String ?: "",
+                            serialEnabled = eventData["guestAccessEnabled"] as? Boolean ?: false,
+                            serialCode = eventData["guestAccessSerialCode"] as? String ?: "",
                             mapUrl = eventData["map_url"] as? String ?: ""
                         )
                         
