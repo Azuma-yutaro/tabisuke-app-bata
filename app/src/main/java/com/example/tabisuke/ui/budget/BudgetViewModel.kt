@@ -15,6 +15,11 @@ data class DailyBudget(
     val dayLabel: String
 )
 
+data class ScheduleDetail(
+    val title: String,
+    val budget: Long
+)
+
 data class BudgetSummary(
     val totalBudget: Long,
     val dailyBudgets: List<DailyBudget>
@@ -27,6 +32,9 @@ class BudgetViewModel : ViewModel() {
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+    
+    private val _scheduleDetails = MutableStateFlow<List<ScheduleDetail>>(emptyList())
+    val scheduleDetails: StateFlow<List<ScheduleDetail>> = _scheduleDetails
     
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     
@@ -47,7 +55,7 @@ class BudgetViewModel : ViewModel() {
                     val data = doc.data
                     if (data != null) {
                         Schedule(
-                            date = data["date"] as? String ?: "",
+                            date = data["dayNumber"]?.toString() ?: "",
                             time = data["time"] as? String ?: "",
                             title = data["title"] as? String ?: "",
                             budget = data["budget"] as? Long ?: 0L,
@@ -57,16 +65,23 @@ class BudgetViewModel : ViewModel() {
                     } else null
                 }
                 
-                // 日付ごとにグループ化
-                val sortedDates = schedules.map { it.date }.distinct().sorted()
-                val dailyBudgets = sortedDates.mapIndexed { idx, date ->
-                    val scheduleList = schedules.filter { it.date == date }
-                    DailyBudget(
-                        date = date,
-                        budget = scheduleList.sumOf { it.budget },
-                        scheduleCount = scheduleList.size,
-                        dayLabel = "${idx + 1}日目"
-                    )
+                // 日付ごとにグループ化（数値として並び替え）
+                val sortedDates = schedules.map { it.date.toIntOrNull() ?: 0 }.distinct().sorted()
+                val dailyBudgets = sortedDates.mapNotNull { dayNumber ->
+                    val scheduleList = schedules.filter { it.date == dayNumber.toString() }
+                    val totalBudget = scheduleList.sumOf { it.budget }
+                    
+                    // 予算が0円の場合は表示しない
+                    if (totalBudget > 0) {
+                        DailyBudget(
+                            date = dayNumber.toString(),
+                            budget = totalBudget,
+                            scheduleCount = scheduleList.size,
+                            dayLabel = "${dayNumber}日目"
+                        )
+                    } else {
+                        null
+                    }
                 }
                 
                 val totalBudget = schedules.sumOf { it.budget }
@@ -79,6 +94,35 @@ class BudgetViewModel : ViewModel() {
                 // エラーハンドリング
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+    
+    fun loadScheduleDetails(groupId: String, eventId: String, dayNumber: String) {
+        viewModelScope.launch {
+            try {
+                val schedulesSnapshot = firestore.collection("groups")
+                    .document(groupId)
+                    .collection("events")
+                    .document(eventId)
+                    .collection("schedules")
+                    .whereEqualTo("dayNumber", dayNumber.toIntOrNull() ?: 0)
+                    .get()
+                    .await()
+                
+                val details = schedulesSnapshot.documents.mapNotNull { doc ->
+                    val data = doc.data
+                    if (data != null) {
+                        ScheduleDetail(
+                            title = data["title"] as? String ?: "",
+                            budget = data["budget"] as? Long ?: 0L
+                        )
+                    } else null
+                }.filter { it.budget > 0 } // 予算が0円のものは除外
+                
+                _scheduleDetails.value = details
+            } catch (e: Exception) {
+                _scheduleDetails.value = emptyList()
             }
         }
     }
