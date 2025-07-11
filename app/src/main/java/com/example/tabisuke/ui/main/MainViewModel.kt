@@ -343,4 +343,13 @@ class MainViewModel : ViewModel() {
             }
             .addOnFailureListener { onResult(emptyList()) }
     }
+
+    fun logout(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            onSuccess()
+        } catch (e: Exception) {
+            onFailure(e)
+        }
+    }
 } 

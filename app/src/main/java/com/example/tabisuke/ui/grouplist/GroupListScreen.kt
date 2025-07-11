@@ -79,28 +79,7 @@ fun GroupListScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    // ログアウトボタン
-                    IconButton(
-                        onClick = {
-                            viewModel.logout(
-                                onSuccess = {
-                                    android.widget.Toast.makeText(context, "ログアウトしました", android.widget.Toast.LENGTH_SHORT).show()
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                },
-                                onFailure = { e: Exception ->
-                                    android.widget.Toast.makeText(context, "ログアウトに失敗しました: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
-                                }
-                            )
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "ログアウト",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
+                    // ログアウトボタン（削除）
                 }
             )
         },
