@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -167,64 +168,116 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     // 行事リスト（日数ごとにグループ化）
                     val groupedSchedules = schedulesWithDates.groupBy { it.schedule.dayNumber }.toSortedMap()
                     
-                    groupedSchedules.forEach { (dayNumber, dailySchedules) ->
+                    if (groupedSchedules.isEmpty()) {
+                        // 行事予定が1件もない場合の表示
                         item {
-                            Card(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .border(
-                                        width = 1.dp,
-                                        color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
-                                        shape = RoundedCornerShape(16.dp)
-                                    ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = androidx.compose.ui.graphics.Color.White
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                shape = RoundedCornerShape(16.dp)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                Spacer(modifier = Modifier.weight(1f))
+                                
+                                // 更新ボタン
+                                Button(
+                                    onClick = { viewModel.loadSchedules(groupId, eventId) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFF8C00) // オレンジ色
+                                    ),
+                                    modifier = Modifier.padding(bottom = 24.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = "更新",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("更新", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                }
+                                
+                                // メッセージ
+                                Text(
+                                    text = "さあ、行事を登録して最高の旅にしよう",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                
+                                Text(
+                                    text = "登録は画面左下のボタンから行えます",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center
+                                )
+                                
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    } else {
+                        // 既存の行事予定表示
+                        groupedSchedules.forEach { (dayNumber, dailySchedules) ->
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .border(
+                                            width = 1.dp,
+                                            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = androidx.compose.ui.graphics.Color.White
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                                     ) {
-                                        Text(
-                                            text = "${dayNumber}日目",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = androidx.compose.ui.graphics.Color(0xFF333333)
-                                        )
-                                        // 実際の日付を表示
-                                        dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Text(
-                                                text = actualDate,
-                                                fontSize = 14.sp,
-                                                color = androidx.compose.ui.graphics.Color(0xFF666666)
+                                                text = "${dayNumber}日目",
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = androidx.compose.ui.graphics.Color(0xFF333333)
                                             )
+                                            // 実際の日付を表示
+                                            dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
+                                                Text(
+                                                    text = actualDate,
+                                                    fontSize = 14.sp,
+                                                    color = androidx.compose.ui.graphics.Color(0xFF666666)
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        
-                        items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
-                            ScheduleItem(
-                                schedule = scheduleWithDate.schedule,
-                                onClick = { showScheduleDetail = scheduleWithDate.schedule },
-                                backgroundColor = when (dayNumber) {
-                                    1 -> androidx.compose.ui.graphics.Color(0xFFFFF3E0) // オレンジ系
-                                    2 -> androidx.compose.ui.graphics.Color(0xFFE8F5E8) // グリーン系
-                                    3 -> androidx.compose.ui.graphics.Color(0xFFE3F2FD) // ブルー系
-                                    4 -> androidx.compose.ui.graphics.Color(0xFFFCE4EC) // ピンク系
-                                    5 -> androidx.compose.ui.graphics.Color(0xFFF3E5F5) // パープル系
-                                    6 -> androidx.compose.ui.graphics.Color(0xFFE0F2F1) // ティール系
-                                    else -> androidx.compose.ui.graphics.Color(0xFFFAFAFA)
-                                }
-                            )
+                            
+                            items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
+                                ScheduleItem(
+                                    schedule = scheduleWithDate.schedule,
+                                    onClick = { showScheduleDetail = scheduleWithDate.schedule },
+                                    backgroundColor = when (dayNumber) {
+                                        1 -> androidx.compose.ui.graphics.Color(0xFFFFF3E0) // オレンジ系
+                                        2 -> androidx.compose.ui.graphics.Color(0xFFE8F5E8) // グリーン系
+                                        3 -> androidx.compose.ui.graphics.Color(0xFFE3F2FD) // ブルー系
+                                        4 -> androidx.compose.ui.graphics.Color(0xFFFCE4EC) // ピンク系
+                                        5 -> androidx.compose.ui.graphics.Color(0xFFF3E5F5) // パープル系
+                                        6 -> androidx.compose.ui.graphics.Color(0xFFE0F2F1) // ティール系
+                                        else -> androidx.compose.ui.graphics.Color(0xFFFAFAFA)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

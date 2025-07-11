@@ -16,8 +16,7 @@ data class Event(
     val endDate: String,
     val createdBy: String,
     val serialEnabled: Boolean,
-    val serialCode: String,
-    val mapUrl: String
+    val serialCode: String
 )
 
 class EventListViewModel : ViewModel() {
@@ -56,8 +55,7 @@ class EventListViewModel : ViewModel() {
                             endDate = eventData["endDate"] as? String ?: eventData["end_date"] as? String ?: "",
                             createdBy = eventData["created_by"] as? String ?: "",
                             serialEnabled = eventData["guestAccessEnabled"] as? Boolean ?: false,
-                            serialCode = eventData["guestAccessSerialCode"] as? String ?: "",
-                            mapUrl = eventData["map_url"] as? String ?: ""
+                            serialCode = eventData["guestAccessSerialCode"] as? String ?: ""
                         )
                         
                         eventList.add(event)
