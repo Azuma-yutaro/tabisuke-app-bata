@@ -316,6 +316,7 @@ fun ScheduleEditScreen(
                                 if (scheduleId != null) {
                                     viewModel.updateSchedule(
                                         scheduleId = scheduleId,
+                                        context = context,
                                         onSuccess = {
                                             Toast.makeText(
                                                 context,
@@ -334,6 +335,7 @@ fun ScheduleEditScreen(
                                     )
                                 } else {
                                     viewModel.saveSchedule(
+                                        context = context,
                                         onSuccess = {
                                             Toast.makeText(
                                                 context,
@@ -484,6 +486,7 @@ fun ScheduleEditScreen(
                     if (scheduleId != null) {
                         viewModel.updateSchedule(
                             scheduleId = scheduleId,
+                            context = context,
                             onSuccess = {
                                 Toast.makeText(
                                     context,
@@ -502,6 +505,7 @@ fun ScheduleEditScreen(
                         )
                     } else {
                         viewModel.saveSchedule(
+                            context = context,
                             onSuccess = {
                                 Toast.makeText(
                                     context,
