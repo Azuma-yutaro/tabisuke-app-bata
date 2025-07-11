@@ -7,17 +7,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.example.tabisuke.utils.ErrorHandler
+
+data class Schedule(
+    val date: String,
+    val time: String,
+    val title: String,
+    val budget: Long,
+    val url: String,
+    val image: String
+)
 
 data class DailyBudget(
     val date: String,
-    val budget: Long,
+    val totalBudget: Long,
     val scheduleCount: Int,
     val dayLabel: String
-)
-
-data class ScheduleDetail(
-    val title: String,
-    val budget: Long
 )
 
 data class BudgetSummary(
@@ -25,10 +30,15 @@ data class BudgetSummary(
     val dailyBudgets: List<DailyBudget>
 )
 
+data class ScheduleDetail(
+    val title: String,
+    val budget: Long
+)
+
 class BudgetViewModel : ViewModel() {
     
-    private val _budgetSummary = MutableStateFlow(BudgetSummary(0L, emptyList()))
-    val budgetSummary: StateFlow<BudgetSummary> = _budgetSummary
+    private val _budgetSummary = MutableStateFlow<BudgetSummary?>(null)
+    val budgetSummary: StateFlow<BudgetSummary?> = _budgetSummary
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -36,10 +46,18 @@ class BudgetViewModel : ViewModel() {
     private val _scheduleDetails = MutableStateFlow<List<ScheduleDetail>>(emptyList())
     val scheduleDetails: StateFlow<List<ScheduleDetail>> = _scheduleDetails
     
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+    
+    private val _hasError = MutableStateFlow(false)
+    val hasError: StateFlow<Boolean> = _hasError
+    
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     
     fun loadBudgetData(groupId: String, eventId: String) {
         _isLoading.value = true
+        _errorMessage.value = null
+        _hasError.value = false
         
         viewModelScope.launch {
             try {
@@ -75,7 +93,7 @@ class BudgetViewModel : ViewModel() {
                     if (totalBudget > 0) {
                         DailyBudget(
                             date = dayNumber.toString(),
-                            budget = totalBudget,
+                            totalBudget = totalBudget,
                             scheduleCount = scheduleList.size,
                             dayLabel = "${dayNumber}日目"
                         )
@@ -91,7 +109,9 @@ class BudgetViewModel : ViewModel() {
                     dailyBudgets = dailyBudgets
                 )
             } catch (e: Exception) {
-                // エラーハンドリング
+                ErrorHandler.logError("BudgetViewModel", "予算データの読み込みに失敗", e)
+                _errorMessage.value = ErrorHandler.getFirebaseErrorMessage(e)
+                _hasError.value = true
             } finally {
                 _isLoading.value = false
             }
@@ -99,6 +119,10 @@ class BudgetViewModel : ViewModel() {
     }
     
     fun loadScheduleDetails(groupId: String, eventId: String, dayNumber: String) {
+        _isLoading.value = true
+        _errorMessage.value = null
+        _hasError.value = false
+        
         viewModelScope.launch {
             try {
                 val schedulesSnapshot = firestore.collection("groups")
@@ -106,11 +130,11 @@ class BudgetViewModel : ViewModel() {
                     .collection("events")
                     .document(eventId)
                     .collection("schedules")
-                    .whereEqualTo("dayNumber", dayNumber.toIntOrNull() ?: 0)
+                    .whereEqualTo("dayNumber", dayNumber.toLong())
                     .get()
                     .await()
                 
-                val details = schedulesSnapshot.documents.mapNotNull { doc ->
+                val scheduleDetails = schedulesSnapshot.documents.mapNotNull { doc ->
                     val data = doc.data
                     if (data != null) {
                         ScheduleDetail(
@@ -118,21 +142,21 @@ class BudgetViewModel : ViewModel() {
                             budget = data["budget"] as? Long ?: 0L
                         )
                     } else null
-                }.filter { it.budget > 0 } // 予算が0円のものは除外
+                }
                 
-                _scheduleDetails.value = details
+                _scheduleDetails.value = scheduleDetails
             } catch (e: Exception) {
-                _scheduleDetails.value = emptyList()
+                ErrorHandler.logError("BudgetViewModel", "スケジュール詳細の読み込みに失敗", e)
+                _errorMessage.value = ErrorHandler.getFirebaseErrorMessage(e)
+                _hasError.value = true
+            } finally {
+                _isLoading.value = false
             }
         }
     }
-}
-
-data class Schedule(
-    val date: String,
-    val time: String,
-    val title: String,
-    val budget: Long,
-    val url: String,
-    val image: String
-) 
+    
+    fun clearError() {
+        _errorMessage.value = null
+        _hasError.value = false
+    }
+} 

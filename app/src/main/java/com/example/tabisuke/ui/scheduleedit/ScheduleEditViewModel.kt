@@ -17,6 +17,7 @@ import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
 import android.content.Context
 import android.net.Uri
+import com.example.tabisuke.utils.ErrorHandler
 
 class ScheduleEditViewModel : ViewModel() {
 
@@ -51,6 +52,11 @@ class ScheduleEditViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val _hasError = MutableStateFlow(false)
+    val hasError: StateFlow<Boolean> = _hasError
 
 
     private var _groupId = ""
@@ -73,6 +79,10 @@ class ScheduleEditViewModel : ViewModel() {
         _scheduleId = scheduleId
         viewModelScope.launch {
             try {
+                _isLoading.value = true
+                _errorMessage.value = null
+                _hasError.value = false
+                
                 val scheduleDoc = firestore.collection("groups")
                     .document(_groupId)
                     .collection("events")
@@ -91,9 +101,16 @@ class ScheduleEditViewModel : ViewModel() {
                     _budget.value = (data["budget"] as? Long ?: 0L).toString()
                     _url.value = data["url"] as? String ?: ""
                     _image.value = data["image"] as? String ?: ""
+                } else {
+                    _errorMessage.value = "スケジュールが見つかりません"
+                    _hasError.value = true
                 }
             } catch (e: Exception) {
-                // エラーハンドリング
+                ErrorHandler.logError("ScheduleEditViewModel", "スケジュールの読み込みに失敗", e)
+                _errorMessage.value = ErrorHandler.getFirebaseErrorMessage(e)
+                _hasError.value = true
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -178,6 +195,8 @@ class ScheduleEditViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
+                _errorMessage.value = null
+                _hasError.value = false
                 
                 var imageUrl = _image.value
                 
@@ -204,12 +223,15 @@ class ScheduleEditViewModel : ViewModel() {
                     .collection("schedules")
                     .add(scheduleData)
                     .await()
-                
+            
                 // 保存成功後、入力欄をクリア（日数と時間は保持）
                 clearInputFields()
                 
                 onSuccess()
             } catch (e: Exception) {
+                ErrorHandler.logError("ScheduleEditViewModel", "スケジュールの保存に失敗", e)
+                _errorMessage.value = ErrorHandler.getFirebaseErrorMessage(e)
+                _hasError.value = true
                 onFailure(e)
             } finally {
                 _isLoading.value = false
@@ -234,6 +256,8 @@ class ScheduleEditViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
+                _errorMessage.value = null
+                _hasError.value = false
                 
                 var imageUrl = _image.value
                 
@@ -264,11 +288,19 @@ class ScheduleEditViewModel : ViewModel() {
                 
                 onSuccess()
             } catch (e: Exception) {
+                ErrorHandler.logError("ScheduleEditViewModel", "スケジュールの更新に失敗", e)
+                _errorMessage.value = ErrorHandler.getFirebaseErrorMessage(e)
+                _hasError.value = true
                 onFailure(e)
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+    
+    fun clearError() {
+        _errorMessage.value = null
+        _hasError.value = false
     }
     
     private suspend fun uploadImageToStorage(imageUri: String, context: Context): String {

@@ -39,6 +39,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.tabisuke.ui.welcome.WelcomeScreen
 import com.example.tabisuke.ui.terms.TermsScreen
+import com.example.tabisuke.utils.NetworkUtils
+import com.example.tabisuke.utils.OfflineCache
+import com.example.tabisuke.ui.mypage.MyPageScreen
 
 @Composable
 fun AppNavigator() {
@@ -115,6 +118,7 @@ fun AppNavigator() {
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             EventListScreen(navController = navController, groupId = groupId)
         }
+        composable("mypage") { MyPageScreen(navController) }
         composable("create_event/{groupId}") { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             CreateEventScreen(navController = navController, groupId = groupId)
@@ -169,6 +173,11 @@ fun AppNavigator() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // オフライン対応の初期化
+        NetworkUtils.initialize(this)
+        OfflineCache.initialize(this)
+        
         setContent {
             TabisukeTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -176,5 +185,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        NetworkUtils.cleanup()
     }
 }

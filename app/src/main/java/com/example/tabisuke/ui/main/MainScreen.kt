@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,455 +56,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainScreen(navController: NavController, groupId: String, eventId: String) {
-    // ここからライトモード固定
-    androidx.compose.material3.MaterialTheme(
-        colorScheme = com.example.tabisuke.ui.theme.LightColorScheme,
-        typography = androidx.compose.material3.MaterialTheme.typography
-    ) {
-        // ここから元のMainScreenの中身全体
-    val viewModel: MainViewModel = viewModel()
-    val event by viewModel.event.collectAsState()
-        val schedules by viewModel.schedules.collectAsState()
-        val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
-    val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
-    val clipboardManager = LocalClipboardManager.current
-    val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-    var pendingDownload by remember { mutableStateOf(false) }
-        
-        var showScheduleDetail by remember { mutableStateOf<Schedule?>(null) }
-        var showShareBottomSheet by remember { mutableStateOf(false) }
-
-    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-        if (isGranted && pendingDownload) {
-            event?.let { eventData ->
-                val fileName = "イベントしおり-tabisuke-$today.pdf"
-                val file = PdfGenerator.generatePdf(context, eventData, schedules, fileName)
-                if (file != null) {
-                    Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
-                }
-            }
-            pendingDownload = false
-        } else if (!isGranted && pendingDownload) {
-            Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
-            pendingDownload = false
-        }
-    }
-
-        LaunchedEffect(groupId, eventId) {
-    viewModel.fetchEvent(groupId, eventId)
-            viewModel.loadSchedules(groupId, eventId)
-        }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                    title = { 
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.tabisuke_text),
-                                    contentDescription = "tabisuke",
-                                    modifier = Modifier.height(10.dp),
-                                    contentScale = ContentScale.Fit
-                                )
-                                Text(
-                                    text = "|",
-                                    fontSize = 14.sp,
-                                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
-                                )
-                                Text(
-                                    text = event?.title ?: "イベント",
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 16.sp,
-                                    color = androidx.compose.ui.graphics.Color(0xFF333333)
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = androidx.compose.ui.graphics.Color.White,
-                        titleContentColor = androidx.compose.ui.graphics.Color.White
-                    ),
-                actions = {
-                    IconButton(onClick = { showShareBottomSheet = true }) {
-                            Icon(Icons.Filled.Share, contentDescription = "シェア", tint = androidx.compose.ui.graphics.Color(0xFF666666))
-                    }
-                    IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
-                            Icon(Icons.Filled.Settings, contentDescription = "管理画面", tint = androidx.compose.ui.graphics.Color(0xFF666666))
-                        }
-                    }
-                )
-            },
-            bottomBar = {
-                EventBottomNavBar(
-                    navController = navController,
-                    groupId = groupId,
-                    eventId = eventId,
-                    mapUrl = event?.mapUrl
-                )
-        }
-    ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                // 行事予定一覧（画面高さ60%、スクロール可能）
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    // 行事リスト（日数ごとにグループ化）
-                    val groupedSchedules = schedulesWithDates.groupBy { it.schedule.dayNumber }.toSortedMap()
-                    
-                    if (groupedSchedules.isEmpty()) {
-                        // 行事予定が1件もない場合の表示
-                        item {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Spacer(modifier = Modifier.weight(1f))
-                                
-                                // 更新ボタン
-                                Button(
-                                    onClick = { viewModel.loadSchedules(groupId, eventId) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFFF8C00) // オレンジ色
-                                    ),
-                                    modifier = Modifier.padding(bottom = 24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Refresh,
-                                        contentDescription = "更新",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("更新", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                                }
-                                
-                                // メッセージ
-                                Text(
-                                    text = "さあ、行事を登録して最高の旅にしよう",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                )
-                                
-                                Text(
-                                    text = "登録は画面左下のボタンから行えます",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center
-                                )
-                                
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    } else {
-                        // 既存の行事予定表示
-                        groupedSchedules.forEach { (dayNumber, dailySchedules) ->
-                            item {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                                        .border(
-                                            width = 1.dp,
-                                            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
-                                            shape = RoundedCornerShape(16.dp)
-                                        ),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = androidx.compose.ui.graphics.Color.White
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                    shape = RoundedCornerShape(16.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = "${dayNumber}日目",
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = androidx.compose.ui.graphics.Color(0xFF333333)
-                                            )
-                                            // 実際の日付を表示
-                                            dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
-                                                Text(
-                                                    text = actualDate,
-                                                    fontSize = 14.sp,
-                                                    color = androidx.compose.ui.graphics.Color(0xFF666666)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
-                                ScheduleItem(
-                                    schedule = scheduleWithDate.schedule,
-                                    onClick = { showScheduleDetail = scheduleWithDate.schedule },
-                                    backgroundColor = when (dayNumber) {
-                                        1 -> androidx.compose.ui.graphics.Color(0xFFFFF3E0) // オレンジ系
-                                        2 -> androidx.compose.ui.graphics.Color(0xFFE8F5E8) // グリーン系
-                                        3 -> androidx.compose.ui.graphics.Color(0xFFE3F2FD) // ブルー系
-                                        4 -> androidx.compose.ui.graphics.Color(0xFFFCE4EC) // ピンク系
-                                        5 -> androidx.compose.ui.graphics.Color(0xFFF3E5F5) // パープル系
-                                        6 -> androidx.compose.ui.graphics.Color(0xFFE0F2F1) // ティール系
-                                        else -> androidx.compose.ui.graphics.Color(0xFFFAFAFA)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // ボタン類とフッター（別のスクロールエリア）
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    // オリジナルボタン（最大3つ）
-                    item {
-                        val originalButtonColors = listOf(
-                            Color(0xFFEFF8FF), // 1つ目
-                            Color(0xFFFFE4E1), // 2つ目
-                            Color(0xFFF5F5DB)  // 3つ目
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
-                        ) {
-                            val buttons = listOfNotNull(event?.button1, event?.button2, event?.button3)
-                            buttons.forEachIndexed { idx, buttonConfig ->
-                        if (buttonConfig.text.isNotBlank()) {
-                                    Button(
-                                        onClick = {
-                                            if (buttonConfig.url.isNotBlank()) uriHandler.openUri(buttonConfig.url)
-                                        },
-                                        modifier = Modifier.size(80.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = originalButtonColors.getOrElse(idx) { Color(0xFFEFF8FF) }
-                                        ),
-                                        contentPadding = PaddingValues(0.dp),
-                                        shape = RoundedCornerShape(16.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.fillMaxSize(),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            val context = LocalContext.current
-                                            val resId = context.resources.getIdentifier(buttonConfig.icon, "drawable", context.packageName)
-                                            if (resId != 0) {
-                                                Icon(
-                                                    painter = painterResource(id = resId),
-                                                    contentDescription = buttonConfig.text,
-                                                    modifier = Modifier.size(28.dp),
-                                                    tint = Color.Unspecified
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                            }
-                                            Text(buttonConfig.text, fontSize = 12.sp, color = Color.DarkGray)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // デフォルトボタン（最大3つ）
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
-                        ) {
-                            // 予算管理
-                            Button(
-                                onClick = { navController.navigate("budget/${groupId}/${eventId}") },
-                                modifier = Modifier.size(80.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFF5F5DB)
-                                ),
-                                contentPadding = PaddingValues(0.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text("予算管理", fontSize = 12.sp, color = Color.DarkGray)
-                                }
-                            }
-                            // ダウンロード
-                            Button(
-                                onClick = {
-                                    pendingDownload = true
-                                    requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                },
-                                modifier = Modifier.size(80.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFFE4E1)
-                                ),
-                                contentPadding = PaddingValues(0.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Filled.ArrowBack, contentDescription = "ダウンロード", modifier = Modifier.size(28.dp), tint = Color.DarkGray)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text("ダウンロード", fontSize = 12.sp, color = Color.DarkGray)
-                                }
-                            }
-                            // 管理
-                            Button(
-                                onClick = { navController.navigate("management/${groupId}/${eventId}") },
-                                modifier = Modifier.size(80.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFEFF8FF)
-                                ),
-                                contentPadding = PaddingValues(0.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text("管理", fontSize = 12.sp, color = Color.DarkGray)
-                                }
-                            }
-                        }
-                    }
-
-                    // Footer - イベント情報と一覧ボタン
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            // イベント情報
-                            event?.let { eventData ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    // イベントタイトル
-                                    Text(
-                                        text = eventData.title,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(bottom = 4.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    
-                                    // 説明
-                                    if (eventData.description.isNotEmpty()) {
-                                        Text(
-                                            text = eventData.description,
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            modifier = Modifier.padding(bottom = 4.dp),
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                        )
-                                    }
-                                    
-                                    // 期間
-                                    if (eventData.startDate.isNotEmpty() && eventData.endDate.isNotEmpty()) {
-                                        Text(
-                                            text = "${eventData.startDate} 〜 ${eventData.endDate}",
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            // イベント一覧に戻るボタン
-                            TextButton(
-                                onClick = { navController.navigate("event_list/${groupId}") },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = androidx.compose.ui.graphics.Color(0xFFFF8C00) // オレンジ色
-                                )
-                            ) {
-                                Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
-                            }
-                            }
-                        }
-                    }
-                }
-            }
-
-        // 行事詳細モーダル
-        showScheduleDetail?.let { schedule ->
-            ScheduleDetailModal(
-                schedule = schedule,
-                onDismiss = { showScheduleDetail = null },
-                onUrlClick = { url -> uriHandler.openUri(url) },
-                onEdit = { scheduleToEdit ->
-                    // 編集画面に遷移
-                    navController.navigate("schedule_edit/${groupId}/${eventId}/${scheduleToEdit.id}")
-                    showScheduleDetail = null
-                }
-            )
-        }
-
-        // シェアBottomSheet
-        if (showShareBottomSheet) {
-            ShareBottomSheet(
-                eventName = event?.title ?: "イベント",
-                groupId = groupId,
-                onDismiss = { showShareBottomSheet = false }
-            )
-        }
-    }
-}
 
 @Composable
 fun ScheduleItem(
@@ -793,6 +345,525 @@ fun ShareBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(navController: NavController, groupId: String, eventId: String) {
+    // ここからライトモード固定
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = com.example.tabisuke.ui.theme.LightColorScheme,
+        typography = androidx.compose.material3.MaterialTheme.typography
+    ) {
+        // ここから元のMainScreenの中身全体
+        val viewModel: MainViewModel = viewModel()
+        val event by viewModel.event.collectAsState()
+        val schedules by viewModel.schedules.collectAsState()
+        val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
+        val isLoading by viewModel.isLoading.collectAsState()
+        val errorMessage by viewModel.errorMessage.collectAsState()
+        val hasError by viewModel.hasError.collectAsState()
+        val isOffline by viewModel.isOffline.collectAsState()
+        val pendingOperationsCount by viewModel.pendingOperationsCount.collectAsState()
+        val isSyncing by viewModel.isSyncing.collectAsState()
+        val context = LocalContext.current
+        val uriHandler = LocalUriHandler.current
+        val clipboardManager = LocalClipboardManager.current
+        val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        var pendingDownload by remember { mutableStateOf(false) }
+        
+        var showScheduleDetail by remember { mutableStateOf<Schedule?>(null) }
+        var showShareBottomSheet by remember { mutableStateOf(false) }
+
+        val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted && pendingDownload) {
+                event?.let { eventData ->
+                    val fileName = "イベントしおり-tabisuke-$today.pdf"
+                    val file = PdfGenerator.generatePdf(context, eventData, schedules, fileName)
+                    if (file != null) {
+                        Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                pendingDownload = false
+            } else if (!isGranted && pendingDownload) {
+                Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
+                pendingDownload = false
+            }
+        }
+
+        LaunchedEffect(groupId, eventId) {
+            viewModel.fetchEvent(groupId, eventId)
+            viewModel.loadSchedules(groupId, eventId)
+        }
+
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.tabisuke_text),
+                                    contentDescription = "tabisuke",
+                                    modifier = Modifier.height(10.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Text(
+                                    text = "|",
+                                    fontSize = 14.sp,
+                                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+                                )
+                                Text(
+                                    text = event?.title ?: "イベント",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 16.sp,
+                                    color = androidx.compose.ui.graphics.Color(0xFF333333)
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.White,
+                        titleContentColor = androidx.compose.ui.graphics.Color.White
+                    ),
+                    actions = {
+                        IconButton(onClick = { showShareBottomSheet = true }) {
+                            Icon(Icons.Filled.Share, contentDescription = "シェア", tint = androidx.compose.ui.graphics.Color(0xFF666666))
+                        }
+                        IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "管理画面", tint = androidx.compose.ui.graphics.Color(0xFF666666))
+                        }
+                    }
+                )
+            },
+            bottomBar = {
+                EventBottomNavBar(
+                    navController = navController,
+                    groupId = groupId,
+                    eventId = eventId,
+                    mapUrl = event?.mapUrl
+                )
+            }
+        ) { padding ->
+            Column {
+                // オフライン時の通知バナー
+                if (isOffline) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WifiOff,
+                                contentDescription = "オフライン",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "オフラインです。一部の機能が制限されます。",
+                                fontSize = 14.sp
+                            )
+                            if (pendingOperationsCount > 0) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                if (isSyncing) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "同期中...",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = "${pendingOperationsCount}件の保留中",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                // メインコンテンツ
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    // 行事予定一覧（画面高さ60%、スクロール可能）
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        // 行事リスト（日数ごとにグループ化）
+                        val groupedSchedules = schedulesWithDates.groupBy { it.schedule.dayNumber }.toSortedMap()
+                        
+                        if (groupedSchedules.isEmpty()) {
+                            // 行事予定が1件もない場合の表示
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    // オフライン時のみ「接続されていません」表示
+                                    if (isOffline) {
+                                        Text(
+                                            text = "接続されていません",
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.padding(bottom = 12.dp)
+                                        )
+                                    }
+                                    // 更新ボタン
+                                    Button(
+                                        onClick = { viewModel.loadSchedules(groupId, eventId) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFFF8C00) // オレンジ色
+                                        ),
+                                        modifier = Modifier.padding(bottom = 24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Refresh,
+                                            contentDescription = "更新",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("更新", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                    
+                                    // メッセージ
+                                    Text(
+                                        text = "さあ、行事を登録して最高の旅にしよう",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    Text(
+                                        text = "登録は画面左下のボタンから行えます",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        } else {
+                            // 既存の行事予定表示
+                            groupedSchedules.forEach { (dayNumber, dailySchedules) ->
+                                item {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+                                                shape = RoundedCornerShape(16.dp)
+                                            ),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = androidx.compose.ui.graphics.Color.White
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "${dayNumber}日目",
+                                                    fontSize = 18.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = androidx.compose.ui.graphics.Color(0xFF333333)
+                                                )
+                                                // 実際の日付を表示
+                                                dailySchedules.firstOrNull()?.actualDate?.let { actualDate ->
+                                                    Text(
+                                                        text = actualDate,
+                                                        fontSize = 14.sp,
+                                                        color = androidx.compose.ui.graphics.Color(0xFF666666)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
+                                    ScheduleItem(
+                                        schedule = scheduleWithDate.schedule,
+                                        onClick = { showScheduleDetail = scheduleWithDate.schedule },
+                                        backgroundColor = when (dayNumber) {
+                                            1 -> androidx.compose.ui.graphics.Color(0xFFFFF3E0) // オレンジ系
+                                            2 -> androidx.compose.ui.graphics.Color(0xFFE8F5E8) // グリーン系
+                                            3 -> androidx.compose.ui.graphics.Color(0xFFE3F2FD) // ブルー系
+                                            4 -> androidx.compose.ui.graphics.Color(0xFFFCE4EC) // ピンク系
+                                            5 -> androidx.compose.ui.graphics.Color(0xFFF3E5F5) // パープル系
+                                            6 -> androidx.compose.ui.graphics.Color(0xFFE0F2F1) // ティール系
+                                            else -> androidx.compose.ui.graphics.Color(0xFFFAFAFA)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // ボタン類とフッター（別のスクロールエリア）
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        // オリジナルボタン（最大3つ）
+                        item {
+                            val originalButtonColors = listOf(
+                                Color(0xFFEFF8FF), // 1つ目
+                                Color(0xFFFFE4E1), // 2つ目
+                                Color(0xFFF5F5DB)  // 3つ目
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                            ) {
+                                val buttons = listOfNotNull(event?.button1, event?.button2, event?.button3)
+                                buttons.forEachIndexed { idx, buttonConfig ->
+                                    if (buttonConfig.text.isNotBlank()) {
+                                        Button(
+                                            onClick = {
+                                                if (buttonConfig.url.isNotBlank()) uriHandler.openUri(buttonConfig.url)
+                                            },
+                                            modifier = Modifier.size(80.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = originalButtonColors.getOrElse(idx) { Color(0xFFEFF8FF) }
+                                            ),
+                                            contentPadding = PaddingValues(0.dp),
+                                            shape = RoundedCornerShape(16.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.fillMaxSize(),
+                                                verticalArrangement = Arrangement.Center,
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                val context = LocalContext.current
+                                                val resId = context.resources.getIdentifier(buttonConfig.icon, "drawable", context.packageName)
+                                                if (resId != 0) {
+                                                    Icon(
+                                                        painter = painterResource(id = resId),
+                                                        contentDescription = buttonConfig.text,
+                                                        modifier = Modifier.size(28.dp),
+                                                        tint = Color.Unspecified
+                                                    )
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                }
+                                                Text(buttonConfig.text, fontSize = 12.sp, color = Color.DarkGray)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // デフォルトボタン（最大3つ）
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                            ) {
+                                // 予算管理
+                                Button(
+                                    onClick = { navController.navigate("budget/${groupId}/${eventId}") },
+                                    modifier = Modifier.size(80.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFF5F5DB)
+                                    ),
+                                    contentPadding = PaddingValues(0.dp),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("予算管理", fontSize = 12.sp, color = Color.DarkGray)
+                                    }
+                                }
+                                // ダウンロード
+                                Button(
+                                    onClick = {
+                                        pendingDownload = true
+                                        requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                    },
+                                    modifier = Modifier.size(80.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFFE4E1)
+                                    ),
+                                    contentPadding = PaddingValues(0.dp),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(Icons.Filled.ArrowBack, contentDescription = "ダウンロード", modifier = Modifier.size(28.dp), tint = Color.DarkGray)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("ダウンロード", fontSize = 12.sp, color = Color.DarkGray)
+                                    }
+                                }
+                                // 管理
+                                Button(
+                                    onClick = { navController.navigate("management/${groupId}/${eventId}") },
+                                    modifier = Modifier.size(80.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFEFF8FF)
+                                    ),
+                                    contentPadding = PaddingValues(0.dp),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color.DarkGray)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("管理", fontSize = 12.sp, color = Color.DarkGray)
+                                    }
+                                }
+                            }
+                        }
+                        // Footer - イベント情報と一覧ボタン
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                // イベント情報
+                                event?.let { eventData ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        // イベントタイトル
+                                        Text(
+                                            text = eventData.title,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(bottom = 4.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                        
+                                        // 説明
+                                        if (eventData.description.isNotEmpty()) {
+                                            Text(
+                                                text = eventData.description,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                                modifier = Modifier.padding(bottom = 4.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                        
+                                        // 期間
+                                        if (eventData.startDate.isNotEmpty() && eventData.endDate.isNotEmpty()) {
+                                            Text(
+                                                text = "${eventData.startDate} 〜 ${eventData.endDate}",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                                
+                                // イベント一覧に戻るボタン
+                                TextButton(
+                                    onClick = { navController.navigate("event_list/${groupId}") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = androidx.compose.ui.graphics.Color(0xFFFF8C00) // オレンジ色
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("イベント一覧に戻る", fontSize = 12.sp, fontWeight = FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // シェアボトムシート
+        if (showShareBottomSheet) {
+            ShareBottomSheet(
+                eventName = event?.title ?: "",
+                groupId = groupId,
+                onDismiss = { showShareBottomSheet = false }
+            )
+        }
+
+        // スケジュール詳細モーダル
+        showScheduleDetail?.let { schedule ->
+            ScheduleDetailModal(
+                schedule = schedule,
+                onDismiss = { showScheduleDetail = null },
+                onUrlClick = { url -> uriHandler.openUri(url) },
+                onEdit = { schedule ->
+                    showScheduleDetail = null
+                    navController.navigate("schedule_edit/${groupId}/${eventId}/${schedule.id}")
+                }
+            )
         }
     }
 }

@@ -25,6 +25,16 @@ import java.time.format.DateTimeFormatter
 import com.example.tabisuke.ui.main.EventBottomNavBar
 import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Link
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -545,16 +555,69 @@ fun ManagementScreen(
                     )
                 }
                         
-                        if (guestAccess.enabled) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                                value = guestAccess.serialCode,
-                                onValueChange = { viewModel.updateGuestAccessSerialCode(it) },
-                        label = { Text("シリアルコード") },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("例: ABC123") }
-                            )
+                if (guestAccess.enabled) {
+                    val guestUrl = "https://tabisuke-web.vercel.app/guest_access/${groupId}/${eventId}"
+                    val context = LocalContext.current
+                    val uriHandler = LocalUriHandler.current
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        // 案内文
+                        Text(
+                            text = "このURLを共有することで、Webで誰でもこのイベントを確認することができます。",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "表示のみ可能（編集不可）",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // シリアルコード入力欄
+                        OutlinedTextField(
+                            value = guestAccess.serialCode,
+                            onValueChange = { viewModel.updateGuestAccessSerialCode(it) },
+                            label = { Text("シリアルコード") },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("例: ABC123") }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // URLを開く・シェアボタン（横並び）
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+                        ) {
+                            Button(
+                                onClick = { uriHandler.openUri(guestUrl) },
+                                modifier = Modifier
+                            ) {
+                                Icon(Icons.Filled.Link, contentDescription = "URLを開く")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("URLを開く")
+                            }
+                            Button(
+                                onClick = {
+                                    val shareText = "イベントのしおりが作成されました！\n下記URLから確認しましょう！\n$guestUrl\nシリアルコード\n${guestAccess.serialCode}"
+                                    val sendIntent = android.content.Intent().apply {
+                                        action = android.content.Intent.ACTION_SEND
+                                        putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                                    context.startActivity(shareIntent)
+                                },
+                                modifier = Modifier
+                            ) {
+                                Icon(Icons.Filled.Share, contentDescription = "シェア")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("シェア")
+                            }
                         }
+                    }
+                }
                     }
                 }
             }

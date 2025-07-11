@@ -101,7 +101,7 @@ fun BudgetScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = "${budgetSummary.totalBudget}円",
+                                text = "${budgetSummary?.totalBudget ?: 0}円",
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -111,7 +111,7 @@ fun BudgetScreen(
                 }
 
                 // 日別予算
-                items(budgetSummary.dailyBudgets) { dailyBudget ->
+                items(budgetSummary?.dailyBudgets ?: emptyList()) { dailyBudget ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -146,7 +146,7 @@ fun BudgetScreen(
                                 )
                             }
                             Text(
-                                text = "${dailyBudget.budget}円",
+                                text = "${dailyBudget.totalBudget}円",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary
@@ -216,7 +216,7 @@ fun BudgetScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${dailyBudget.budget}円",
+                            text = "${dailyBudget.totalBudget}円",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
