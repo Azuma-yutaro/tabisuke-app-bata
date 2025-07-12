@@ -28,6 +28,11 @@ fun HomeScreen(navController: NavController, groupId: String, eventId: String) {
     mainViewModel.fetchEvent(groupId, eventId)
 
     Scaffold { padding ->
-        MainScreen(navController, groupId, eventId)
+        MainScreen(
+            navController = navController,
+            groupId = groupId,
+            eventId = eventId,
+            modifier = Modifier.padding(padding)
+        )
     }
 }

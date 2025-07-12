@@ -192,7 +192,7 @@ fun EventListScreen(
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
                     
                     errorMessage?.let { message ->
                         Text(
@@ -205,7 +205,7 @@ fun EventListScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    Button(
+            Button(
                         onClick = { 
                             viewModel.clearError()
                             viewModel.loadEvents(groupId)

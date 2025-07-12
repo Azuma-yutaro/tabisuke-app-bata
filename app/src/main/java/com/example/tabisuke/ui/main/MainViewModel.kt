@@ -41,6 +41,9 @@ data class ScheduleWithDate(
 )
 
 class MainViewModel : ViewModel() {
+    private var groupId: String = ""
+    private var eventId: String = ""
+
     private val _event = MutableStateFlow<Event?>(null)
     val event: StateFlow<Event?> = _event
 
@@ -68,9 +71,19 @@ class MainViewModel : ViewModel() {
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing
 
+    private val _selectedDayFilter = MutableStateFlow("all")
+    val selectedDayFilter: StateFlow<String> = _selectedDayFilter
+
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
+    private fun getFilterKey(): String {
+        return "day_filter_${groupId}_${eventId}"
+    }
+
     fun fetchEvent(groupId: String, eventId: String) {
+        this.groupId = groupId
+        this.eventId = eventId
+        
         _isLoading.value = true
         _errorMessage.value = null
         _hasError.value = false
@@ -186,6 +199,27 @@ class MainViewModel : ViewModel() {
     private fun updatePendingOperationsCount() {
         val pendingOps = OfflineCache.getPendingOperations()
         _pendingOperationsCount.value = pendingOps.size
+    }
+
+    fun setDayFilter(dayFilter: String) {
+        _selectedDayFilter.value = dayFilter
+        // SharedPreferencesに保存は、UI側で行う
+    }
+
+    fun loadSavedFilter(context: android.content.Context) {
+        val prefs = context.getSharedPreferences("tabisuke_filters", android.content.Context.MODE_PRIVATE)
+        val savedFilter = prefs.getString(getFilterKey(), "all")
+        _selectedDayFilter.value = savedFilter ?: "all"
+    }
+
+    fun saveFilterToPreferences(context: android.content.Context, dayFilter: String) {
+        val prefs = context.getSharedPreferences("tabisuke_filters", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(getFilterKey(), dayFilter).apply()
+    }
+
+    fun getAvailableDays(): List<String> {
+        val days = _schedulesWithDates.value.map { it.schedule.dayNumber }.distinct().sorted()
+        return listOf("all") + days.map { "${it}日目" }
     }
 
     fun loadSchedules(groupId: String, eventId: String) {

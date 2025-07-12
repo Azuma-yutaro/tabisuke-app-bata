@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -351,15 +352,66 @@ fun ShareBottomSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavController, groupId: String, eventId: String) {
+fun CompactDayFilterDropdown(
+    selectedDay: String,
+    availableDays: List<String>,
+    onDaySelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(
+            onClick = { expanded = !expanded }
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = "日程絞り込み",
+                tint = androidx.compose.ui.graphics.Color(0xFF666666),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            availableDays.forEach { day ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = when (day) {
+                                "all" -> "全ての日程"
+                                else -> day
+                            },
+                            fontSize = 14.sp
+                        )
+                    },
+                    onClick = {
+                        onDaySelected(day)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(
+    navController: NavController,
+    groupId: String,
+    eventId: String,
+    modifier: Modifier = Modifier
+) {
     // ここからライトモード固定
     androidx.compose.material3.MaterialTheme(
         colorScheme = com.example.tabisuke.ui.theme.LightColorScheme,
         typography = androidx.compose.material3.MaterialTheme.typography
     ) {
         // ここから元のMainScreenの中身全体
-        val viewModel: MainViewModel = viewModel()
-        val event by viewModel.event.collectAsState()
+    val viewModel: MainViewModel = viewModel()
+    val event by viewModel.event.collectAsState()
         val schedules by viewModel.schedules.collectAsState()
         val schedulesWithDates by viewModel.schedulesWithDates.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
@@ -368,8 +420,10 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         val isOffline by viewModel.isOffline.collectAsState()
         val pendingOperationsCount by viewModel.pendingOperationsCount.collectAsState()
         val isSyncing by viewModel.isSyncing.collectAsState()
-        val context = LocalContext.current
-        val uriHandler = LocalUriHandler.current
+        val selectedDayFilter by viewModel.selectedDayFilter.collectAsState()
+        val availableDays by remember { derivedStateOf { viewModel.getAvailableDays() } }
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
         val clipboardManager = LocalClipboardManager.current
         val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         var pendingDownload by remember { mutableStateOf(false) }
@@ -379,18 +433,18 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
 
         val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted && pendingDownload) {
-                event?.let { eventData ->
+            event?.let { eventData ->
                     val fileName = "イベントしおり-tabisuke-$today.pdf"
                     val file = PdfGenerator.generatePdf(context, eventData, schedules, fileName)
-                    if (file != null) {
-                        Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
-                    }
+                if (file != null) {
+                    Toast.makeText(context, "PDFをダウンロードしました: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "PDFのダウンロードに失敗しました", Toast.LENGTH_SHORT).show()
                 }
+            }
                 pendingDownload = false
             } else if (!isGranted && pendingDownload) {
-                Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "PDFダウンロードにはストレージ権限が必要です", Toast.LENGTH_SHORT).show()
                 pendingDownload = false
             }
         }
@@ -398,11 +452,12 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
         LaunchedEffect(groupId, eventId) {
             viewModel.fetchEvent(groupId, eventId)
             viewModel.loadSchedules(groupId, eventId)
-        }
+            viewModel.loadSavedFilter(context)
+    }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
+    Scaffold(
+        topBar = {
+            TopAppBar(
                     title = { 
                         Column {
                             Row(
@@ -433,11 +488,22 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                         containerColor = androidx.compose.ui.graphics.Color.White,
                         titleContentColor = androidx.compose.ui.graphics.Color.White
                     ),
-                    actions = {
+                actions = {
+                        // 複数の日程がある場合のみ絞り込みドロップダウンを表示
+                        if (availableDays.size > 1) {
+                            CompactDayFilterDropdown(
+                                selectedDay = selectedDayFilter,
+                                availableDays = availableDays,
+                                onDaySelected = { day ->
+                                    viewModel.setDayFilter(day)
+                                    viewModel.saveFilterToPreferences(context, day)
+                                }
+                            )
+                        }
                         IconButton(onClick = { showShareBottomSheet = true }) {
                             Icon(Icons.Filled.Share, contentDescription = "シェア", tint = androidx.compose.ui.graphics.Color(0xFF666666))
-                        }
-                        IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
+                    }
+                    IconButton(onClick = { navController.navigate("management/${groupId}/${eventId}") }) {
                             Icon(Icons.Filled.Settings, contentDescription = "管理画面", tint = androidx.compose.ui.graphics.Color(0xFF666666))
                         }
                     }
@@ -450,22 +516,25 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                     eventId = eventId,
                     mapUrl = event?.mapUrl
                 )
-            }
-        ) { padding ->
-            Column {
+        }
+    ) { padding ->
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+            ) {
                 // オフライン時の通知バナー
                 if (isOffline) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                         color = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -522,8 +591,21 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                             .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
                             .background(MaterialTheme.colorScheme.background)
                     ) {
+                        // 絞り込みされたスケジュールを計算
+                        val filteredSchedules = when (selectedDayFilter) {
+                            "all" -> schedulesWithDates
+                            else -> {
+                                val dayNumber = selectedDayFilter.replace("日目", "").toIntOrNull()
+                                if (dayNumber != null) {
+                                    schedulesWithDates.filter { it.schedule.dayNumber == dayNumber }
+                                } else {
+                                    schedulesWithDates
+                                }
+                            }
+                        }
+                        
                         // 行事リスト（日数ごとにグループ化）
-                        val groupedSchedules = schedulesWithDates.groupBy { it.schedule.dayNumber }.toSortedMap()
+                        val groupedSchedules = filteredSchedules.groupBy { it.schedule.dayNumber }.toSortedMap()
                         
                         if (groupedSchedules.isEmpty()) {
                             // 行事予定が1件もない場合の表示
@@ -622,12 +704,12 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                                                         fontSize = 14.sp,
                                                         color = androidx.compose.ui.graphics.Color(0xFF666666)
                                                     )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
+                            }
+                        }
+                    }
+                }
+            }
+
                                 items(dailySchedules.sortedBy { it.schedule.time }) { scheduleWithDate ->
                                     ScheduleItem(
                                         schedule = scheduleWithDate.schedule,
@@ -780,8 +862,8 @@ fun MainScreen(navController: NavController, groupId: String, eventId: String) {
                         // Footer - イベント情報と一覧ボタン
                         item {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
                                 // イベント情報

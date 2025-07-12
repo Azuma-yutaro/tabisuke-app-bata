@@ -21,10 +21,22 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            // 署名設定（後で実際のキーストアファイルに変更）
+            storeFile file("tabisuke-release-key.keystore")
+            storePassword "your_keystore_password"
+            keyAlias "tabisuke-key-alias"
+            keyPassword "your_key_password"
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

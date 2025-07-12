@@ -91,13 +91,13 @@ fun MyPageScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(onClick = { /* 使い方ページ */ }, modifier = Modifier.fillMaxWidth()) { Text("使い方") }
+                Button(onClick = { navController.navigate("usage") }, modifier = Modifier.fillMaxWidth()) { Text("使い方") }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { /* 利用規約 */ }, modifier = Modifier.fillMaxWidth()) { Text("利用規約") }
+                Button(onClick = { navController.navigate("terms") }, modifier = Modifier.fillMaxWidth()) { Text("利用規約") }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { /* プライバシーポリシー */ }, modifier = Modifier.fillMaxWidth()) { Text("プライバシーポリシー") }
+                Button(onClick = { navController.navigate("privacy") }, modifier = Modifier.fillMaxWidth()) { Text("プライバシーポリシー") }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { /* お問い合わせ */ }, modifier = Modifier.fillMaxWidth()) { Text("お問い合わせ") }
+                Button(onClick = { navController.navigate("contact") }, modifier = Modifier.fillMaxWidth()) { Text("お問い合わせ") }
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { showLogoutConfirm = true },

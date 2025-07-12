@@ -35,6 +35,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,6 +126,12 @@ fun ManagementScreen(
         }
     }
 
+    // --- ここでエラー変数を宣言 ---
+    var mapUrlError by remember { mutableStateOf("") }
+    var button1UrlError by remember { mutableStateOf("") }
+    var button2UrlError by remember { mutableStateOf("") }
+    var button3UrlError by remember { mutableStateOf("") }
+
 
     Scaffold(
         topBar = {
@@ -181,6 +189,10 @@ fun ManagementScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            var mapUrlError by remember { mutableStateOf("") }
+            var button1UrlError by remember { mutableStateOf("") }
+            var button2UrlError by remember { mutableStateOf("") }
+            var button3UrlError by remember { mutableStateOf("") }
             
             // 削除確認ダイアログ（1回目）
             if (showDeleteConfirm) {
@@ -384,10 +396,9 @@ fun ManagementScreen(
             }
 
                         // Google Maps URL
-            var mapUrlError by remember { mutableStateOf("") }
             val mapUrl = event?.mapUrl ?: ""
-            OutlinedTextField(
-                value = mapUrl,
+                OutlinedTextField(
+                    value = mapUrl,
                 onValueChange = {
                     if (it.length <= 100) {
                         viewModel.updateEventMapUrl(it)
@@ -448,7 +459,7 @@ fun ManagementScreen(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         
-                        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                         
                         // メンバー権限管理
                         val members by viewModel.members.collectAsState()
@@ -539,7 +550,7 @@ fun ManagementScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        Row(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -577,10 +588,10 @@ fun ManagementScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         // シリアルコード入力欄
-                        OutlinedTextField(
+                    OutlinedTextField(
                             value = guestAccess.serialCode,
                             onValueChange = { viewModel.updateGuestAccessSerialCode(it) },
-                            label = { Text("シリアルコード") },
+                        label = { Text("シリアルコード") },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("例: ABC123") }
                         )
@@ -623,199 +634,19 @@ fun ManagementScreen(
             }
 
             // オリジナルボタン設定
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "オリジナルボタン設定",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                                        // ボタン1
-                    OutlinedTextField(
-                        value = event?.button1?.text ?: "",
-                        onValueChange = { 
-                            if (it.length <= 100) {
-                                viewModel.updateButton1Text(it) 
-                            }
-                        },
-                        label = { Text("ボタン1 テキスト") },
-                        placeholder = { Text("最大100文字") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        supportingText = {
-                            Text("${(event?.button1?.text ?: "").length}/100")
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var button1UrlError by remember { mutableStateOf("") }
-                    val button1Url = event?.button1?.url ?: ""
-                                    OutlinedTextField(
-                        value = button1Url,
-                        onValueChange = {
-                            if (it.length <= 100) {
-                                viewModel.updateButton1Url(it)
-                                button1UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                    "正しいURLを入力してください"
-                                } else {
-                                    ""
-                                }
-                            }
-                        },
-                        label = { Text("ボタン1 URL") },
-                        placeholder = { Text("https://... (最大100文字)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = button1UrlError.isNotEmpty(),
-                        supportingText = {
-                            Text("${button1Url.length}/100")
-                        }
-                    )
-                    if (button1UrlError.isNotEmpty()) {
-                        Text(
-                            text = button1UrlError,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // アイコン選択ドロップダウン（共通関数化）
-                    IconDropdown(
-                        label = "ボタン1 アイコン",
-                        selectedValue = event?.button1?.icon,
-                        onSelect = { viewModel.updateButton1Icon(it) }
-                    )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                                        // ボタン2
-                    OutlinedTextField(
-                        value = event?.button2?.text ?: "",
-                        onValueChange = { 
-                            if (it.length <= 100) {
-                                viewModel.updateButton2Text(it) 
-                            }
-                        },
-                        label = { Text("ボタン2 テキスト") },
-                        placeholder = { Text("最大100文字") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        supportingText = {
-                            Text("${(event?.button2?.text ?: "").length}/100")
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var button2UrlError by remember { mutableStateOf("") }
-                    val button2Url = event?.button2?.url ?: ""
-                                    OutlinedTextField(
-                        value = button2Url,
-                        onValueChange = {
-                            if (it.length <= 100) {
-                                viewModel.updateButton2Url(it)
-                                button2UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                    "正しいURLを入力してください"
-                                } else {
-                                    ""
-                                }
-                            }
-                        },
-                        label = { Text("ボタン2 URL") },
-                        placeholder = { Text("https://... (最大100文字)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = button2UrlError.isNotEmpty(),
-                        supportingText = {
-                            Text("${button2Url.length}/100")
-                        }
-                    )
-                    if (button2UrlError.isNotEmpty()) {
-                        Text(
-                            text = button2UrlError,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // ボタン2アイコン
-                    IconDropdown(
-                        label = "ボタン2 アイコン",
-                        selectedValue = event?.button2?.icon,
-                        onSelect = { viewModel.updateButton2Icon(it) }
-                    )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                                        // ボタン3
-                    OutlinedTextField(
-                        value = event?.button3?.text ?: "",
-                        onValueChange = { 
-                            if (it.length <= 100) {
-                                viewModel.updateButton3Text(it) 
-                            }
-                        },
-                        label = { Text("ボタン3 テキスト") },
-                        placeholder = { Text("最大100文字") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        supportingText = {
-                            Text("${(event?.button3?.text ?: "").length}/100")
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var button3UrlError by remember { mutableStateOf("") }
-                    val button3Url = event?.button3?.url ?: ""
-                                    OutlinedTextField(
-                        value = button3Url,
-                        onValueChange = {
-                            if (it.length <= 100) {
-                                viewModel.updateButton3Url(it)
-                                button3UrlError = if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
-                                    "正しいURLを入力してください"
-                                } else {
-                                    ""
-                                }
-                            }
-                        },
-                        label = { Text("ボタン3 URL") },
-                        placeholder = { Text("https://... (最大100文字)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = button3UrlError.isNotEmpty(),
-                        supportingText = {
-                            Text("${button3Url.length}/100")
-                        }
-                    )
-                    if (button3UrlError.isNotEmpty()) {
-                        Text(
-                            text = button3UrlError,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // ボタン3アイコン
-                    IconDropdown(
-                        label = "ボタン3 アイコン",
-                        selectedValue = event?.button3?.icon,
-                        onSelect = { viewModel.updateButton3Icon(it) }
-                    )
-                }
-            }
+            TabbedButtonSettings(
+                event = event,
+                viewModel = viewModel,
+                button1UrlError = button1UrlError,
+                button2UrlError = button2UrlError,
+                button3UrlError = button3UrlError,
+                onButton1UrlErrorChange = { button1UrlError = it },
+                onButton2UrlErrorChange = { button2UrlError = it },
+                onButton3UrlErrorChange = { button3UrlError = it }
+            )
 
             // 保存ボタン
-            Button(
+                Button(
                 onClick = {
                     viewModel.saveEvent(
                         groupId = groupId,
@@ -833,7 +664,11 @@ fun ManagementScreen(
                 enabled = !(event?.title.isNullOrEmpty()) && 
                          !(event?.startDate.isNullOrEmpty()) && 
                          !(event?.endDate.isNullOrEmpty()) && 
-                         isDateValid
+                         isDateValid &&
+                         mapUrlError.isEmpty() &&
+                         button1UrlError.isEmpty() &&
+                         button2UrlError.isEmpty() &&
+                         button3UrlError.isEmpty()
             ) {
                 Text("保存", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
@@ -978,5 +813,279 @@ fun MemberPermissionItem(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TabbedButtonSettings(
+    event: Event?,
+    viewModel: ManagementViewModel,
+    button1UrlError: String,
+    button2UrlError: String,
+    button3UrlError: String,
+    onButton1UrlErrorChange: (String) -> Unit,
+    onButton2UrlErrorChange: (String) -> Unit,
+    onButton3UrlErrorChange: (String) -> Unit
+) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("ボタン1", "ボタン2", "ボタン3")
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "オリジナルボタン設定",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // タブ行
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // タブコンテンツ
+            when (selectedTabIndex) {
+                0 -> Button1Content(
+                    event = event,
+                    viewModel = viewModel,
+                    button1UrlError = button1UrlError,
+                    onButton1UrlErrorChange = onButton1UrlErrorChange
+                )
+                1 -> Button2Content(
+                    event = event,
+                    viewModel = viewModel,
+                    button2UrlError = button2UrlError,
+                    onButton2UrlErrorChange = onButton2UrlErrorChange
+                )
+                2 -> Button3Content(
+                    event = event,
+                    viewModel = viewModel,
+                    button3UrlError = button3UrlError,
+                    onButton3UrlErrorChange = onButton3UrlErrorChange
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Button1Content(
+    event: Event?,
+    viewModel: ManagementViewModel,
+    button1UrlError: String,
+    onButton1UrlErrorChange: (String) -> Unit
+) {
+    Column {
+        OutlinedTextField(
+            value = event?.button1?.text ?: "",
+            onValueChange = { 
+                if (it.length <= 100) {
+                    viewModel.updateButton1Text(it) 
+                }
+            },
+            label = { Text("ボタン1 テキスト") },
+            placeholder = { Text("最大100文字") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            supportingText = {
+                Text("${(event?.button1?.text ?: "").length}/100")
+            }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        val button1Url = event?.button1?.url ?: ""
+        OutlinedTextField(
+            value = button1Url,
+            onValueChange = {
+                if (it.length <= 100) {
+                    viewModel.updateButton1Url(it)
+                    onButton1UrlErrorChange(
+                        if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                            "正しいURLを入力してください"
+                        } else {
+                            ""
+                        }
+                    )
+                }
+            },
+            label = { Text("ボタン1 URL") },
+            placeholder = { Text("https://... (最大100文字)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = button1UrlError.isNotEmpty(),
+            supportingText = {
+                Text("${button1Url.length}/100")
+            }
+        )
+        if (button1UrlError.isNotEmpty()) {
+            Text(
+                text = button1UrlError,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        IconDropdown(
+            label = "ボタン1 アイコン",
+            selectedValue = event?.button1?.icon,
+            onSelect = { viewModel.updateButton1Icon(it) }
+        )
+    }
+}
+
+@Composable
+fun Button2Content(
+    event: Event?,
+    viewModel: ManagementViewModel,
+    button2UrlError: String,
+    onButton2UrlErrorChange: (String) -> Unit
+) {
+    Column {
+        OutlinedTextField(
+            value = event?.button2?.text ?: "",
+            onValueChange = { 
+                if (it.length <= 100) {
+                    viewModel.updateButton2Text(it) 
+                }
+            },
+            label = { Text("ボタン2 テキスト") },
+            placeholder = { Text("最大100文字") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            supportingText = {
+                Text("${(event?.button2?.text ?: "").length}/100")
+            }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        val button2Url = event?.button2?.url ?: ""
+        OutlinedTextField(
+            value = button2Url,
+            onValueChange = {
+                if (it.length <= 100) {
+                    viewModel.updateButton2Url(it)
+                    onButton2UrlErrorChange(
+                        if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                            "正しいURLを入力してください"
+                        } else {
+                            ""
+                        }
+                    )
+                }
+            },
+            label = { Text("ボタン2 URL") },
+            placeholder = { Text("https://... (最大100文字)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = button2UrlError.isNotEmpty(),
+            supportingText = {
+                Text("${button2Url.length}/100")
+            }
+        )
+        if (button2UrlError.isNotEmpty()) {
+            Text(
+                text = button2UrlError,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        IconDropdown(
+            label = "ボタン2 アイコン",
+            selectedValue = event?.button2?.icon,
+            onSelect = { viewModel.updateButton2Icon(it) }
+        )
+    }
+}
+
+@Composable
+fun Button3Content(
+    event: Event?,
+    viewModel: ManagementViewModel,
+    button3UrlError: String,
+    onButton3UrlErrorChange: (String) -> Unit
+) {
+    Column {
+        OutlinedTextField(
+            value = event?.button3?.text ?: "",
+            onValueChange = { 
+                if (it.length <= 100) {
+                    viewModel.updateButton3Text(it) 
+                }
+            },
+            label = { Text("ボタン3 テキスト") },
+            placeholder = { Text("最大100文字") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            supportingText = {
+                Text("${(event?.button3?.text ?: "").length}/100")
+            }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        val button3Url = event?.button3?.url ?: ""
+        OutlinedTextField(
+            value = button3Url,
+            onValueChange = {
+                if (it.length <= 100) {
+                    viewModel.updateButton3Url(it)
+                    onButton3UrlErrorChange(
+                        if (it.isNotEmpty() && !(it.startsWith("http://") || it.startsWith("https://"))) {
+                            "正しいURLを入力してください"
+                        } else {
+                            ""
+                        }
+                    )
+                }
+            },
+            label = { Text("ボタン3 URL") },
+            placeholder = { Text("https://... (最大100文字)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = button3UrlError.isNotEmpty(),
+            supportingText = {
+                Text("${button3Url.length}/100")
+            }
+        )
+        if (button3UrlError.isNotEmpty()) {
+            Text(
+                text = button3UrlError,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        IconDropdown(
+            label = "ボタン3 アイコン",
+            selectedValue = event?.button3?.icon,
+            onSelect = { viewModel.updateButton3Icon(it) }
+        )
     }
 }

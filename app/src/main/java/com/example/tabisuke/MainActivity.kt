@@ -42,6 +42,10 @@ import com.example.tabisuke.ui.terms.TermsScreen
 import com.example.tabisuke.utils.NetworkUtils
 import com.example.tabisuke.utils.OfflineCache
 import com.example.tabisuke.ui.mypage.MyPageScreen
+import com.example.tabisuke.ui.usage.UsageScreen
+import com.example.tabisuke.ui.privacy.PrivacyScreen
+import com.example.tabisuke.ui.contact.ContactScreen
+import com.example.tabisuke.ui.webview.WebViewScreen
 
 @Composable
 fun AppNavigator() {
@@ -89,17 +93,19 @@ fun AppNavigator() {
     val isValidLastRoute = lastRoute != null && lastRoute.isNotBlank() && allowedStartRoutes.any { lastRoute.startsWith(it) }
     // 初回起動判定
     val agreedToTerms = prefs.getBoolean("agreed_to_terms", false)
+    val agreedToPrivacy = prefs.getBoolean("agreed_to_privacy", false)
     val completedWelcome = prefs.getBoolean("completed_welcome", false)
     val staticStartDestination = when {
         !agreedToTerms -> "terms"
+        !agreedToPrivacy -> "privacy"
         !completedWelcome -> "welcome"
         isLoggedIn -> "group_list"
         else -> "login"
     }
 
     // NavHostの直後にlast_routeが有効ならnavigate（同意済み・welcome済み時のみ）
-    LaunchedEffect(isLoggedIn, agreedToTerms, completedWelcome) {
-        if (isLoggedIn && agreedToTerms && completedWelcome && isValidLastRoute && lastRoute != "group_list") {
+    LaunchedEffect(isLoggedIn, agreedToTerms, agreedToPrivacy, completedWelcome) {
+        if (isLoggedIn && agreedToTerms && agreedToPrivacy && completedWelcome && isValidLastRoute && lastRoute != "group_list") {
             navController.navigate(lastRoute!!) {
                 popUpTo("group_list") { inclusive = false }
                 launchSingleTop = true
@@ -108,7 +114,8 @@ fun AppNavigator() {
     }
 
     NavHost(navController = navController, startDestination = staticStartDestination) {
-        composable("terms") { TermsScreen(navController, prefs) }
+        composable("terms") { TermsScreen(navController) }
+        composable("privacy") { PrivacyScreen(navController) }
         composable("welcome") { WelcomeScreen(navController, prefs) }
         composable("login") { LoginScreen(navController) }
         composable("group_list") { GroupListScreen(navController) }
@@ -166,6 +173,14 @@ fun AppNavigator() {
         composable("member_management/{groupId}") { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             MemberManagementScreen(navController = navController, groupId = groupId)
+        }
+        composable("usage") { UsageScreen(navController) }
+        composable("privacy") { PrivacyScreen(navController) }
+        composable("contact") { ContactScreen(navController) }
+        composable("webview/{url}/{title}") { backStackEntry ->
+            val url = backStackEntry.arguments?.getString("url") ?: ""
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            WebViewScreen(navController = navController, url = url, title = title)
         }
     }
 }
