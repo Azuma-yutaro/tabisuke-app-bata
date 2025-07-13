@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.tabisuke'
+    namespace 'com.tabisuke.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.tabisuke"
+        applicationId "com.tabisuke.app"
         minSdk 24
         targetSdk 34
         versionCode 1
@@ -23,11 +23,10 @@ android {
 
     signingConfigs {
         release {
-            // 署名設定（後で実際のキーストアファイルに変更）
-            storeFile file("tabisuke-release-key.keystore")
-            storePassword "your_keystore_password"
-            keyAlias "tabisuke-key-alias"
-            keyPassword "your_key_password"
+            storeFile file("tabisuke-release-key.jks")
+            storePassword System.getenv("TABISUKE_STORE_PASSWORD") ?: TABISUKE_STORE_PASSWORD
+            keyAlias System.getenv("TABISUKE_KEY_ALIAS") ?: TABISUKE_KEY_ALIAS
+            keyPassword System.getenv("TABISUKE_KEY_PASSWORD") ?: TABISUKE_KEY_PASSWORD
         }
     }
 

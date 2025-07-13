@@ -12,7 +12,20 @@
           "package_name": "com.example.tabisuke"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "513822032551-23f1ngv4e4o27strtdo4o493mforip2p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tabisuke",
+            "certificate_hash": "a73ad077a87555c845c5635e458891cdf31b1de8"
+          }
+        },
+        {
+          "client_id": "513822032551-6qjhgmiin5tkcsuluiifjm5bclfgf76m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCPqj15jSWVd5WuhOqQjld7UwQLWdVX6fY"
@@ -20,7 +33,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "513822032551-6qjhgmiin5tkcsuluiifjm5bclfgf76m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513822032551:android:53cfc20a6d4c3f433c9182",
+        "android_client_info": {
+          "package_name": "com.tabisuke.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "513822032551-4trbk3t36gadvrteepufsbcrafcgi83p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tabisuke.app",
+            "certificate_hash": "a73ad077a87555c845c5635e458891cdf31b1de8"
+          }
+        },
+        {
+          "client_id": "513822032551-6qjhgmiin5tkcsuluiifjm5bclfgf76m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPqj15jSWVd5WuhOqQjld7UwQLWdVX6fY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "513822032551-6qjhgmiin5tkcsuluiifjm5bclfgf76m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
