@@ -12,7 +12,7 @@ android {
         applicationId "com.tabisuke.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
+        versionCode 2
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -23,10 +23,13 @@ android {
 
     signingConfigs {
         release {
+            // 署名設定（後で実際のキーストアファイルに変更）
+            release {
             storeFile file("tabisuke-release-key.jks")
-            storePassword System.getenv("TABISUKE_STORE_PASSWORD") ?: TABISUKE_STORE_PASSWORD
-            keyAlias System.getenv("TABISUKE_KEY_ALIAS") ?: TABISUKE_KEY_ALIAS
-            keyPassword System.getenv("TABISUKE_KEY_PASSWORD") ?: TABISUKE_KEY_PASSWORD
+            storePassword TABISUKE_STORE_PASSWORD
+            keyAlias TABISUKE_KEY_ALIAS
+            keyPassword TABISUKE_KEY_PASSWORD
+        }
         }
     }
 
