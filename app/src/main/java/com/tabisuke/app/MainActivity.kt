@@ -6,7 +6,11 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -15,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
@@ -47,6 +52,12 @@ import com.tabisuke.app.ui.usage.UsageScreen
 import com.tabisuke.app.ui.privacy.PrivacyScreen
 import com.tabisuke.app.ui.contact.ContactScreen
 import com.tabisuke.app.ui.webview.WebViewScreen
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.MobileAds
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
 fun AppNavigator() {
@@ -189,15 +200,23 @@ fun AppNavigator() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        // AdMob初期化
+        MobileAds.initialize(this) {}
         // オフライン対応の初期化
         NetworkUtils.initialize(this)
         OfflineCache.initialize(this)
-        
         setContent {
             TabisukeTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AppNavigator()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // 既存のアプリUI
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // 既存のCompose UIをここに
+                        Surface(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.background) {
+                            AppNavigator()
+                        }
+                        // AdMobバナー広告
+                        AdMobBanner()
+                    }
                 }
             }
         }
@@ -207,4 +226,21 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         NetworkUtils.cleanup()
     }
+}
+
+@Composable
+fun AdMobBanner() {
+    val context = LocalContext.current
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+        factory = {
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // テスト用ID
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
 }
